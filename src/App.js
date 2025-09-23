@@ -986,41 +986,47 @@ const WaveformDisplay = ({ audioBuffer, isPlaying, title = "Waveform" }) => {
 
 const ParameterInfo = ({ title, description, technical }) => {
   const [showTooltip, setShowTooltip] = useState(false);
-  const [position, setPosition] = useState('left');
-  const ref = useRef(null);
 
-  const handleMouseEnter = () => {
-    if (ref.current) {
-      const rect = ref.current.getBoundingClientRect();
-      if (rect.left > window.innerWidth / 2) {
-        setPosition('right');
-      } else {
-        setPosition('left');
-      }
-    }
-    setShowTooltip(true);
+  const handleClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setShowTooltip(!showTooltip);
   };
 
   return (
-    <div ref={ref} className="relative inline-block">
+    <div className="relative inline-block">
       <button
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={() => setShowTooltip(false)}
-        className="ml-1 w-4 h-4 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center hover:bg-blue-400"
+        onClick={handleClick}
+        className="ml-1 w-3 h-3 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center hover:bg-blue-400 lg:w-4 lg:h-4"
       >
         i
       </button>
 
       {showTooltip && (
-        <div
-          className={`absolute z-50 w-80 p-3 bg-gray-800 border border-gray-600 rounded-lg shadow-lg bottom-6 ${
-            position === 'left' ? 'left-0' : 'right-0'
-          }`}
-        >
-          <h4 className="font-semibold text-white mb-2">{title}</h4>
-          <p className="text-sm text-gray-300 mb-2 whitespace-pre-wrap">{description}</p>
-          <p className="text-xs text-gray-400 italic">{technical}</p>
-        </div>
+        <>
+          {/* Full screen backdrop */}
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-[200]" 
+            onClick={() => setShowTooltip(false)}
+          />
+          
+          {/* Centered modal */}
+          <div
+            className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[300] w-80 max-w-[90vw] p-4 bg-gray-800 border border-gray-600 rounded-lg shadow-2xl"
+          >
+            <div className="flex justify-between items-start mb-2">
+              <h4 className="font-semibold text-white">{title}</h4>
+              <button 
+                onClick={() => setShowTooltip(false)}
+                className="text-gray-400 hover:text-white text-xl leading-none ml-2"
+              >
+                ×
+              </button>
+            </div>
+            <p className="text-sm text-gray-300 mb-2">{description}</p>
+            <p className="text-xs text-gray-400 italic">{technical}</p>
+          </div>
+        </>
       )}
     </div>
   );
@@ -1698,6 +1704,9 @@ export default function CompleteCrispFXR() {
   const [isClipping, setIsClipping] = useState(false);
   const [currentShareLink, setCurrentShareLink] = useState('');
 
+  const currentParams = activeSlot === 'A' ? params : paramsB;
+  const currentBuffer = activeSlot === 'A' ? audioBuffer : audioBufferB;
+
   // Error boundary and logging
   useEffect(() => {
     const handleError = (event) => {
@@ -2022,6 +2031,14 @@ export default function CompleteCrispFXR() {
     }
   }, [params, paramsB, activeSlot, morphAmount, sampleRate, bitDepth]);
 
+  // Generate sound when parameters change - FIXED dependencies
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      generateSound();
+    }, 100);
+    return () => clearTimeout(timeoutId);
+  }, [params, paramsB, activeSlot, morphAmount, sampleRate, bitDepth, generateSound]);
+
   const playSound = useCallback(async (slot = activeSlot) => {
     const buffer = slot === 'A' ? audioBuffer : audioBufferB;
     if (!buffer || !synthRef.current) {
@@ -2067,13 +2084,27 @@ export default function CompleteCrispFXR() {
     }
   }, [activeSlot, historyIndex]);
 
-  const copySlot = useCallback(() => {
+  const copySlot = useCallback(async () => {
     if (activeSlot === 'A') {
       setParamsB({ ...params });
+      console.log('Copied Slot A to Slot B');
+      // Generate audio for slot B immediately
+      setActiveSlot('B');
+      setTimeout(() => generateSound(), 100);
     } else {
       setParams({ ...paramsB });
+      console.log('Copied Slot B to Slot A');
+      // Generate audio for slot A immediately  
+      setActiveSlot('A');
+      setTimeout(() => generateSound(), 100);
     }
-  }, [params, paramsB, activeSlot]);
+    
+    if (Capacitor.isNativePlatform()) {
+      Haptics.impact({ style: ImpactStyle.Light }).catch(e => {
+        console.warn('Haptics not available:', e);
+      });
+    }
+  }, [params, paramsB, activeSlot, generateSound]);
 
   const morphSlots = useCallback(() => {
     const sourceParams = activeSlot === 'A' ? params : paramsB;
@@ -2349,9 +2380,6 @@ export default function CompleteCrispFXR() {
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [undo, redo, playSound, loadPreset, toggleLoop, mutateParams, generateShareLink, showNumericInputs]);
 
-  const currentParams = activeSlot === 'A' ? params : paramsB;
-  const currentBuffer = activeSlot === 'A' ? audioBuffer : audioBufferB;
-
   // Info button handler
   const [showInfo, setShowInfo] = useState(false);
   
@@ -2392,105 +2420,185 @@ export default function CompleteCrispFXR() {
             CrispFXR
           </h1>
 
-          {/* Volume & Morph - Numbers next to labels */}
+          {/* Volume & Morph - FIXED draggable sliders */}
           <div className="grid grid-cols-2 gap-2 mb-3">
-            <div className="flex items-center gap-1 bg-gray-800/50 rounded p-2">
-              <Headphones className="w-3 h-3" />
-              <span className="text-xs">: {Math.round(masterVolume * 100)}%</span>
-              <input type="range" min="0" max="1" step="0.1" value={masterVolume} onChange={(e) => setMasterVolume(parseFloat(e.target.value))} className="flex-1 slider" />
+            <div className="bg-gray-800/50 rounded p-2">
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-1">
+                  <Headphones className="w-3 h-3" />
+                  <span className="text-xs">Vol:</span>
+                </div>
+                <span className="text-xs">{Math.round(masterVolume * 100)}%</span>
+              </div>
+              <input 
+                type="range" 
+                min="0" 
+                max="1" 
+                step="0.01" 
+                value={masterVolume} 
+                onChange={(e) => setMasterVolume(parseFloat(e.target.value))} 
+                className="w-full slider"
+              />
             </div>
-            <div className="flex items-center gap-1 bg-gray-800/50 rounded p-2">
-              <span className="text-xs">Morph: </span>
-              <span className="text-xs">{Math.round(morphAmount * 100)}%</span>
-              <input type="range" min="0" max="1" step="0.01" value={morphAmount} onChange={(e) => setMorphAmount(parseFloat(e.target.value))} className="flex-1 slider" />
+            <div className="bg-gray-800/50 rounded p-2">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs">Morph:</span>
+                <span className="text-xs">{Math.round(morphAmount * 100)}%</span>
+              </div>
+              <input 
+                type="range" 
+                min="0" 
+                max="1" 
+                step="0.01" 
+                value={morphAmount} 
+                onChange={(e) => setMorphAmount(parseFloat(e.target.value))} 
+                className="w-full slider"
+              />
             </div>
           </div>
 
-        {/* Slot Controls */}
-        <div className="grid grid-cols-3 gap-2 mb-3">
-          <button onClick={() => setActiveSlot('A')} className={`py-2 rounded text-xs font-semibold ${activeSlot === 'A' ? 'bg-blue-600' : 'bg-gray-700'}`}>Slot A</button>
-          <button onClick={copySlot} className="py-2 bg-gray-600 rounded text-xs font-semibold flex items-center justify-center gap-1">
-            <Copy className="w-3 h-3" />Copy
-          </button>
-          <button onClick={() => setActiveSlot('B')} className={`py-2 rounded text-xs font-semibold ${activeSlot === 'B' ? 'bg-blue-600' : 'bg-gray-700'}`}>Slot B</button>
-        </div>
+          {/* Slot Controls - FIXED Copy button */}
+          <div className="grid grid-cols-3 gap-2 mb-3">
+            <button onClick={() => setActiveSlot('A')} className={`py-3 rounded text-xs font-semibold ${activeSlot === 'A' ? 'bg-blue-600' : 'bg-gray-700'}`}>
+              Slot A
+            </button>
+            <button onClick={copySlot} className="py-3 bg-gray-600 hover:bg-gray-500 rounded text-xs font-semibold">
+              <Copy className="w-3 h-3 inline mr-1" />Copy
+            </button>
+            <button onClick={() => setActiveSlot('B')} className={`py-3 rounded text-xs font-semibold ${activeSlot === 'B' ? 'bg-blue-600' : 'bg-gray-700'}`}>
+              Slot B
+            </button>
+          </div>
 
-        {/* Waveforms A & B */}
-        <div className="grid grid-cols-2 gap-2 mb-3">
-          <div className="bg-gray-900/50 backdrop-blur rounded border border-gray-700 p-2 relative group">
-            <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-              <ParameterInfo {...parameterInfo.waveform} />
+          {/* Waveforms A & B with info icons */}
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            <div className="bg-gray-900/50 backdrop-blur rounded border border-gray-700 p-2 relative group">
+              <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                <ParameterInfo {...parameterInfo.waveform} />
+              </div>
+              <WaveformDisplay
+                audioBuffer={audioBuffer}
+                isPlaying={isPlaying && activeSlot === 'A'}
+                title="Slot A"
+              />
             </div>
-            <WaveformDisplay
-              audioBuffer={audioBuffer}
-              isPlaying={isPlaying && activeSlot === 'A'}
-              title="Slot A"
-            />
-          </div>
-          <div className="bg-gray-900/50 backdrop-blur rounded border border-gray-700 p-2 relative group">
-            <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-              <ParameterInfo {...parameterInfo.waveform} />
+            <div className="bg-gray-900/50 backdrop-blur rounded border border-gray-700 p-2 relative group">
+              <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                <ParameterInfo {...parameterInfo.waveform} />
+              </div>
+              <WaveformDisplay
+                audioBuffer={audioBufferB}
+                isPlaying={isPlaying && activeSlot === 'B'}
+                title="Slot B"
+              />
             </div>
-            <WaveformDisplay
-              audioBuffer={audioBufferB}
-              isPlaying={isPlaying && activeSlot === 'B'}
-              title="Slot B"
-            />
           </div>
-        </div>
 
-        {/* Play and Export Buttons - No line breaks */}
-        <div className="grid grid-cols-4 gap-2 mb-3">
-          <button onClick={() => playSound('A')} disabled={!audioBuffer} className={`py-2 rounded text-xs font-semibold flex items-center justify-center gap-1 ${!audioBuffer ? 'bg-gray-700' : 'bg-green-600'}`}>
-            <Play className="w-3 h-3" />A
-          </button>
-          <button onClick={toggleLoop} className={`py-2 rounded flex items-center justify-center gap-1 text-xs font-semibold ${isLooping ? 'bg-red-600' : 'bg-gray-600'}`}>
-            {isLooping ? <PauseCircle className="w-3 h-3" /> : <Repeat className="w-3 h-3" />}
-          </button>
-          <select value={exportFormat} onChange={(e) => setExportFormat(e.target.value)} className="py-2 bg-gray-800 rounded text-xs text-center">
-            <option value="wav">WAV</option>
-            <option value="json">JSON</option>
-          </select>
-          <button onClick={exportSound} disabled={!currentBuffer} className="py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 rounded text-xs font-semibold flex items-center justify-center gap-1">
-            <Download className="w-3 h-3" />Export
-          </button>
-          <button onClick={() => playSound('B')} disabled={!audioBufferB} className={`py-2 rounded text-xs font-semibold flex items-center justify-center gap-1 ${!audioBufferB ? 'bg-gray-700' : 'bg-emerald-600'}`}>
-            <Play className="w-3 h-3" />B
-          </button>
-        </div>
+          {/* Play and Export Buttons - FIXED inline text */}
+          <div className="grid grid-cols-4 gap-2 mb-3">
+            <button onClick={() => playSound('A')} disabled={!audioBuffer} className={`py-3 rounded text-xs font-semibold ${!audioBuffer ? 'bg-gray-700' : 'bg-green-600'}`}>
+              <Play className="w-3 h-3 inline mr-1" />Play A
+            </button>
+            <button onClick={toggleLoop} className={`py-3 rounded text-xs font-semibold ${isLooping ? 'bg-red-600' : 'bg-gray-600'}`}>
+              {isLooping ? <PauseCircle className="w-3 h-3 inline mr-1" /> : <Repeat className="w-3 h-3 inline mr-1" />}Loop
+            </button>
+            <button onClick={() => playSound('B')} disabled={!audioBufferB} className={`py-3 rounded text-xs font-semibold ${!audioBufferB ? 'bg-gray-700' : 'bg-emerald-600'}`}>
+              <Play className="w-3 h-3 inline mr-1" />Play B
+            </button>
+            <button onClick={exportSound} disabled={!currentBuffer} className="py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 rounded text-xs font-semibold">
+              <Download className="w-3 h-3 inline mr-1" />Export
+            </button>
+          </div>
 
-        {/* Analysis Visualizations - 3 in one row with info buttons */}
-        <div className="grid grid-cols-3 gap-1 mb-3">
-          <div className="bg-gray-900/50 backdrop-blur rounded border border-gray-700 p-1 relative group">
-            <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-              <ParameterInfo {...parameterInfo.spectrum} />
+          {/* Presets - Mobile */}
+          <div className="bg-gray-900/50 backdrop-blur rounded border border-gray-700 p-2 mb-3">
+            <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
+              <Zap className="w-4 h-4" />
+              Presets
+            </h3>
+            <div className="grid grid-cols-4 gap-2">
+              {presets.slice(0, 8).map((preset) => (
+                <button
+                  key={preset.name}
+                  onClick={() => loadPreset(preset.name)}
+                  className={`p-2 ${preset.color} hover:opacity-80 rounded transition-all text-xs font-semibold preset-btn`}
+                >
+                  <div className="text-sm">{preset.emoji}</div>
+                  <div className="text-xs leading-tight">{preset.label.split(' ')[0]}</div>
+                </button>
+              ))}
             </div>
-            <SpectrumAnalyzer audioBuffer={currentBuffer} />
-          </div>
-          <div className="bg-gray-900/50 backdrop-blur rounded border border-gray-700 p-1 relative group">
-            <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-              <ParameterInfo {...parameterInfo.amplitudeMeter} />
+            <div className="grid grid-cols-4 gap-2 mt-2">
+              {presets.slice(8).map((preset) => (
+                <button
+                  key={preset.name}
+                  onClick={() => loadPreset(preset.name)}
+                  className={`p-2 ${preset.color} hover:opacity-80 rounded transition-all text-xs font-semibold preset-btn`}
+                >
+                  <div className="text-sm">{preset.emoji}</div>
+                  <div className="text-xs leading-tight">{preset.label.split(' ')[0]}</div>
+                </button>
+              ))}
             </div>
-            <AmplitudeMeter audioBuffer={currentBuffer} />
           </div>
-          <div className="bg-gray-900/50 backdrop-blur rounded border border-gray-700 p-1 relative group">
-            <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-              <ParameterInfo {...parameterInfo.amplitudeEnvelope} />
-            </div>
-            <AmplitudeEnvelope audioBuffer={currentBuffer} />
-          </div>
-        </div>
 
-        {/* Audio Quality - Compact */}
-        <div className="bg-gray-900/50 backdrop-blur rounded border border-gray-700 p-3 mb-3">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-semibold text-white">Audio Quality</h3>
-            <div className={`flex items-center gap-1 rounded px-2 py-1 text-xs ${isClipping ? 'bg-red-600 text-white' : 'bg-gray-700 text-gray-300'}`}>
-              <div className={`w-2 h-2 rounded ${isClipping ? 'bg-white' : 'bg-gray-500'}`}></div>
-              Clip
+          {/* Analysis Visualizations - Clean titles with small info buttons */}
+          <div className="grid grid-cols-3 gap-1 mb-3">
+            <div className="bg-gray-900/50 backdrop-blur rounded border border-gray-700 p-1 relative">
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="text-xs font-semibold text-white leading-tight">Spectrum</h3>
+                <ParameterInfo {...parameterInfo.spectrum} />
+              </div>
+              <SpectrumAnalyzer audioBuffer={currentBuffer} />
+            </div>
+            <div className="bg-gray-900/50 backdrop-blur rounded border border-gray-700 p-1 relative">
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="text-xs font-semibold text-white leading-tight">Level</h3>
+                <ParameterInfo {...parameterInfo.amplitudeMeter} />
+              </div>
+              <AmplitudeMeter audioBuffer={currentBuffer} />
+            </div>
+            <div className="bg-gray-900/50 backdrop-blur rounded border border-gray-700 p-1 relative">
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="text-xs font-semibold text-white leading-tight">Envelope</h3>
+                <ParameterInfo {...parameterInfo.amplitudeEnvelope} />
+              </div>
+              <AmplitudeEnvelope audioBuffer={currentBuffer} />
             </div>
           </div>
+
+          {/* Audio Quality - FIXED clipping detection */}
+          <div className="bg-gray-900/50 backdrop-blur rounded border border-gray-700 p-2 mb-3">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-semibold text-white">Audio Quality</h3>
+              <button 
+                onClick={async () => {
+                  console.log('CLIP button clicked - regenerating audio');
+                  await generateSound();
+                  // Force check after generation completes
+                  setTimeout(() => {
+                    const buffer = activeSlot === 'A' ? audioBuffer : audioBufferB;
+                    if (buffer) {
+                      const clipping = detectClipping(buffer, 0.95);
+                      setIsClipping(clipping);
+                      console.log('Clipping detected:', clipping);
+                    }
+                  }, 200);
+                }}
+                className={`flex items-center gap-1 rounded px-2 py-1 text-xs transition-all cursor-pointer hover:opacity-80 ${
+                  isClipping 
+                    ? 'bg-red-600 text-white animate-pulse shadow-lg' 
+                    : 'bg-green-700 text-white'
+                }`}
+              >
+                <div className={`w-2 h-2 rounded-full ${
+                  isClipping ? 'bg-white animate-pulse' : 'bg-green-300'
+                }`}></div>
+                <span className="font-bold">{isClipping ? 'CLIP!' : 'OK'}</span>
+              </button>
+            </div>
           
+          {/* Rest stays the same */}
           <div className="flex items-center gap-1 mb-2">
             <span className="text-xs font-medium text-white w-8">Rate:</span>
             <div className="flex gap-1 flex-1">
@@ -2526,48 +2634,44 @@ export default function CompleteCrispFXR() {
           </div>
         </div>
 
-        {/* Presets - 4 columns */}
-        <div className="bg-gray-900/50 backdrop-blur rounded border border-gray-700 p-3 mb-3">
-          <h3 className="text-sm font-semibold mb-2 flex items-center gap-1">
-            <Zap className="w-4 h-4" />Presets
-          </h3>
-          <div className="grid grid-cols-4 gap-1">
-            {presets.slice(0, 16).map((preset) => (
-              <button
-                key={preset.name}
-                onClick={() => loadPreset(preset.name)}
-                className={`p-2 ${preset.color} hover:opacity-80 rounded text-xs font-semibold flex flex-col items-center gap-1`}
-              >
-                <span className="text-sm">{preset.emoji}</span>
-                <span className="text-[10px] leading-tight">{preset.label.split(' ')[0]}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* Parameter Controls */}
-        <div className="bg-gray-900/50 backdrop-blur rounded border border-gray-700 p-3">
-          {/* Tabs - All in one row + toggle */}
-          <div className="flex justify-between items-center mb-3">
-            <div className="flex bg-gray-800/50 p-1 rounded flex-1 mr-2">
-              {[
-                { id: 'basic', label: 'Basic' },
-                { id: 'envelope', label: 'Env.' },
-                { id: 'effects', label: 'FX' },
-                { id: 'advanced', label: 'Adv.' }
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`px-2 py-1 rounded transition-colors text-xs flex-1 ${
-                    activeTab === tab.id ? 'bg-blue-600 text-white' : 'text-gray-300'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
+        <div className="bg-gray-900/50 backdrop-blur rounded border border-gray-700 p-2">
+          {/* Tabs - FORCE horizontal with CSS class */}
+          <div className="flex items-center gap-2 mb-2 tabs-container">
+            <div className="flex bg-gray-800/50 p-1 rounded flex-1">
+              <button
+                onClick={() => setActiveTab('basic')}
+                className={`px-2 py-1 rounded transition-colors text-xs flex-1 ${
+                  activeTab === 'basic' ? 'bg-blue-600 text-white' : 'text-gray-300'
+                }`}
+              >
+                Basic
+              </button>
+              <button
+                onClick={() => setActiveTab('envelope')}
+                className={`px-2 py-1 rounded transition-colors text-xs flex-1 ${
+                  activeTab === 'envelope' ? 'bg-blue-600 text-white' : 'text-gray-300'
+                }`}
+              >
+                Env
+              </button>
+              <button
+                onClick={() => setActiveTab('effects')}
+                className={`px-2 py-1 rounded transition-colors text-xs flex-1 ${
+                  activeTab === 'effects' ? 'bg-blue-600 text-white' : 'text-gray-300'
+                }`}
+              >
+                FX
+              </button>
+              <button
+                onClick={() => setActiveTab('advanced')}
+                className={`px-2 py-1 rounded transition-colors text-xs flex-1 ${
+                  activeTab === 'advanced' ? 'bg-blue-600 text-white' : 'text-gray-300'
+                }`}
+              >
+                Adv
+              </button>
             </div>
-
             <button
               onClick={() => setShowNumericInputs(!showNumericInputs)}
               className={`px-2 py-1 rounded transition-colors text-xs ${
@@ -2580,10 +2684,11 @@ export default function CompleteCrispFXR() {
 
           {/* Parameter content - 2 sliders per row */}
           {activeTab === 'basic' && (
-            <div className="space-y-3">
-              <div className="bg-gray-800/50 rounded p-3">
+            <div className="space-y-2">
+              <div className="bg-gray-800/50 rounded p-2">
                 <div className="flex items-center gap-2 mb-2">
                   <h4 className="text-sm font-semibold text-blue-300">Waveform</h4>
+                  <ParameterInfo {...parameterInfo.waveformType} />
                 </div>
                 <div className="grid grid-cols-4 gap-2">
                   {waveTypes.map((wave, idx) => (
@@ -2600,7 +2705,7 @@ export default function CompleteCrispFXR() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 {showNumericInputs ? (
                   <>
                     <NumericInput
@@ -2623,18 +2728,20 @@ export default function CompleteCrispFXR() {
                       value={currentParams.p_base_freq}
                       onChange={(v) => updateParam('p_base_freq', v)}
                       min={0} max={2}
+                      info={parameterInfo.p_base_freq}
                     />
                     <ParamSlider
                       label="Freq Ramp"
                       value={currentParams.p_freq_ramp}
                       onChange={(v) => updateParam('p_freq_ramp', v)}
                       min={-1} max={1}
+                      info={parameterInfo.p_freq_ramp}
                     />
                   </>
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 {showNumericInputs ? (
                   <>
                     <NumericInput
@@ -2657,12 +2764,14 @@ export default function CompleteCrispFXR() {
                       value={currentParams.p_freq_limit}
                       onChange={(v) => updateParam('p_freq_limit', v)}
                       min={0} max={1}
+                      info={parameterInfo.p_freq_limit}
                     />
                     <ParamSlider
                       label="Retrigger"
                       value={currentParams.p_repeat_speed}
                       onChange={(v) => updateParam('p_repeat_speed', v)}
                       min={0} max={1}
+                      info={parameterInfo.p_repeat_speed}
                     />
                   </>
                 )}
@@ -2671,8 +2780,8 @@ export default function CompleteCrispFXR() {
           )}
 
           {activeTab === 'envelope' && (
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-2">
                 {showNumericInputs ? (
                   <>
                     <NumericInput label="Attack" value={currentParams.p_env_attack} onChange={(v) => updateParam('p_env_attack', v)} />
@@ -2680,12 +2789,12 @@ export default function CompleteCrispFXR() {
                   </>
                 ) : (
                   <>
-                    <ParamSlider label="Attack" value={currentParams.p_env_attack} onChange={(v) => updateParam('p_env_attack', v)} />
-                    <ParamSlider label="Sustain" value={currentParams.p_env_sustain} onChange={(v) => updateParam('p_env_sustain', v)} />
+                    <ParamSlider label="Attack" value={currentParams.p_env_attack} onChange={(v) => updateParam('p_env_attack', v)} info={parameterInfo.p_env_attack} />
+                    <ParamSlider label="Sustain" value={currentParams.p_env_sustain} onChange={(v) => updateParam('p_env_sustain', v)} info={parameterInfo.p_env_sustain} />
                   </>
                 )}
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 {showNumericInputs ? (
                   <>
                     <NumericInput label="Decay" value={currentParams.p_env_decay} onChange={(v) => updateParam('p_env_decay', v)} />
@@ -2693,12 +2802,12 @@ export default function CompleteCrispFXR() {
                   </>
                 ) : (
                   <>
-                    <ParamSlider label="Decay" value={currentParams.p_env_decay} onChange={(v) => updateParam('p_env_decay', v)} />
-                    <ParamSlider label="Punch" value={currentParams.p_env_punch} onChange={(v) => updateParam('p_env_punch', v)} />
+                    <ParamSlider label="Decay" value={currentParams.p_env_decay} onChange={(v) => updateParam('p_env_decay', v)} info={parameterInfo.p_env_decay} />
+                    <ParamSlider label="Punch" value={currentParams.p_env_punch} onChange={(v) => updateParam('p_env_punch', v)} info={parameterInfo.p_env_punch} />
                   </>
                 )}
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 {showNumericInputs ? (
                   <>
                     <NumericInput label="Vib Speed" value={currentParams.p_vib_speed} onChange={(v) => updateParam('p_vib_speed', v)} />
@@ -2706,8 +2815,8 @@ export default function CompleteCrispFXR() {
                   </>
                 ) : (
                   <>
-                    <ParamSlider label="Vib Speed" value={currentParams.p_vib_speed} onChange={(v) => updateParam('p_vib_speed', v)} />
-                    <ParamSlider label="Vib Depth" value={currentParams.p_vib_strength} onChange={(v) => updateParam('p_vib_strength', v)} />
+                    <ParamSlider label="Vib Speed" value={currentParams.p_vib_speed} onChange={(v) => updateParam('p_vib_speed', v)} info={parameterInfo.p_vib_speed} />
+                    <ParamSlider label="Vib Depth" value={currentParams.p_vib_strength} onChange={(v) => updateParam('p_vib_strength', v)} info={parameterInfo.p_vib_strength} />
                   </>
                 )}
               </div>
@@ -2715,8 +2824,8 @@ export default function CompleteCrispFXR() {
           )}
 
           {activeTab === 'effects' && (
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-2">
                 {showNumericInputs ? (
                   <>
                     <NumericInput label="Distortion" value={currentParams.distortion} onChange={(v) => updateParam('distortion', v)} />
@@ -2724,12 +2833,12 @@ export default function CompleteCrispFXR() {
                   </>
                 ) : (
                   <>
-                    <ParamSlider label="Distortion" value={currentParams.distortion} onChange={(v) => updateParam('distortion', v)} />
-                    <ParamSlider label="Bit Crush" value={currentParams.bit_crush} onChange={(v) => updateParam('bit_crush', v)} />
+                    <ParamSlider label="Distortion" value={currentParams.distortion} onChange={(v) => updateParam('distortion', v)} info={parameterInfo.distortion} />
+                    <ParamSlider label="Bit Crush" value={currentParams.bit_crush} onChange={(v) => updateParam('bit_crush', v)} info={parameterInfo.bit_crush} />
                   </>
                 )}
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 {showNumericInputs ? (
                   <>
                     <NumericInput label="Low Pass" value={currentParams.p_lpf_freq} onChange={(v) => updateParam('p_lpf_freq', v)} />
@@ -2737,12 +2846,12 @@ export default function CompleteCrispFXR() {
                   </>
                 ) : (
                   <>
-                    <ParamSlider label="Low Pass" value={currentParams.p_lpf_freq} onChange={(v) => updateParam('p_lpf_freq', v)} />
-                    <ParamSlider label="High Pass" value={currentParams.p_hpf_freq} onChange={(v) => updateParam('p_hpf_freq', v)} />
+                    <ParamSlider label="Low Pass" value={currentParams.p_lpf_freq} onChange={(v) => updateParam('p_lpf_freq', v)} info={parameterInfo.p_lpf_freq} />
+                    <ParamSlider label="High Pass" value={currentParams.p_hpf_freq} onChange={(v) => updateParam('p_hpf_freq', v)} info={parameterInfo.p_hpf_freq} />
                   </>
                 )}
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 {showNumericInputs ? (
                   <>
                     <NumericInput label="Chorus" value={currentParams.chorus_rate} onChange={(v) => updateParam('chorus_rate', v)} />
@@ -2750,8 +2859,8 @@ export default function CompleteCrispFXR() {
                   </>
                 ) : (
                   <>
-                    <ParamSlider label="Chorus" value={currentParams.chorus_rate} onChange={(v) => updateParam('chorus_rate', v)} />
-                    <ParamSlider label="Delay" value={currentParams.delay_time} onChange={(v) => updateParam('delay_time', v)} />
+                    <ParamSlider label="Chorus" value={currentParams.chorus_rate} onChange={(v) => updateParam('chorus_rate', v)} info={parameterInfo.chorus_rate} />
+                    <ParamSlider label="Delay" value={currentParams.delay_time} onChange={(v) => updateParam('delay_time', v)} info={parameterInfo.delay_time} />
                   </>
                 )}
               </div>
@@ -2759,8 +2868,8 @@ export default function CompleteCrispFXR() {
           )}
 
           {activeTab === 'advanced' && (
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-2">
                 {showNumericInputs ? (
                   <>
                     <NumericInput label="FM Freq" value={currentParams.fm_freq} onChange={(v) => updateParam('fm_freq', v)} />
@@ -2768,12 +2877,12 @@ export default function CompleteCrispFXR() {
                   </>
                 ) : (
                   <>
-                    <ParamSlider label="FM Freq" value={currentParams.fm_freq} onChange={(v) => updateParam('fm_freq', v)} />
-                    <ParamSlider label="FM Depth" value={currentParams.fm_depth} onChange={(v) => updateParam('fm_depth', v)} />
+                    <ParamSlider label="FM Freq" value={currentParams.fm_freq} onChange={(v) => updateParam('fm_freq', v)} info={parameterInfo.fm_freq} />
+                    <ParamSlider label="FM Depth" value={currentParams.fm_depth} onChange={(v) => updateParam('fm_depth', v)} info={parameterInfo.fm_depth} />
                   </>
                 )}
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 {showNumericInputs ? (
                   <>
                     <NumericInput label="Ring Freq" value={currentParams.ring_mod_freq} onChange={(v) => updateParam('ring_mod_freq', v)} />
@@ -2781,12 +2890,12 @@ export default function CompleteCrispFXR() {
                   </>
                 ) : (
                   <>
-                    <ParamSlider label="Ring Freq" value={currentParams.ring_mod_freq} onChange={(v) => updateParam('ring_mod_freq', v)} />
-                    <ParamSlider label="Ring Depth" value={currentParams.ring_mod_depth} onChange={(v) => updateParam('ring_mod_depth', v)} />
+                    <ParamSlider label="Ring Freq" value={currentParams.ring_mod_freq} onChange={(v) => updateParam('ring_mod_freq', v)} info={parameterInfo.ring_mod_freq} />
+                    <ParamSlider label="Ring Depth" value={currentParams.ring_mod_depth} onChange={(v) => updateParam('ring_mod_depth', v)} info={parameterInfo.ring_mod_depth} />
                   </>
                 )}
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 {showNumericInputs ? (
                   <>
                     <NumericInput label="Feedback" value={currentParams.delay_feedback} onChange={(v) => updateParam('delay_feedback', v)} />
@@ -2794,8 +2903,8 @@ export default function CompleteCrispFXR() {
                   </>
                 ) : (
                   <>
-                    <ParamSlider label="Feedback" value={currentParams.delay_feedback} onChange={(v) => updateParam('delay_feedback', v)} />
-                    <ParamSlider label="Volume" value={currentParams.sound_vol} onChange={(v) => updateParam('sound_vol', v)} />
+                    <ParamSlider label="Feedback" value={currentParams.delay_feedback} onChange={(v) => updateParam('delay_feedback', v)} info={parameterInfo.delay_feedback} />
+                    <ParamSlider label="Volume" value={currentParams.sound_vol} onChange={(v) => updateParam('sound_vol', v)} info={parameterInfo.sound_vol} />
                   </>
                 )}
               </div>
@@ -2804,7 +2913,7 @@ export default function CompleteCrispFXR() {
         </div>
       </div>
 
-      {/* ------------------- FIX STARTS HERE ------------------- */}
+        {/* ------------------- DESKTOP SECTION STARTS HERE ------------------- */}
         {/* Single Desktop UI Wrapper */}
         <div className="hidden lg:block">
 
@@ -2975,16 +3084,16 @@ export default function CompleteCrispFXR() {
                       <Download className="w-4 h-4" />Export {activeSlot}
                     </button>
                   </div>
+                  {!Capacitor.isNativePlatform() && (
+                    <div className="mt-3">
+                      <input type="file" accept=".json" onChange={importPreset} className="hidden" id="preset-import-desktop" />
+                      <label htmlFor="preset-import-desktop" className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded transition-colors flex items-center gap-2 font-semibold cursor-pointer justify-center">
+                        <Download className="w-4 h-4 rotate-180" />Import Preset
+                      </label>
+                    </div>
+                  )}
                 </div>
 
-                {!Capacitor.isNativePlatform() && (
-                  <div className="mt-3">
-                    <input type="file" accept=".json" onChange={importPreset} className="hidden" id="preset-import-desktop" />
-                    <label htmlFor="preset-import-desktop" className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded transition-colors flex items-center gap-2 font-semibold cursor-pointer justify-center">
-                      <Download className="w-4 h-4 rotate-180" />Import Preset
-                    </label>
-                  </div>
-                )}
               </div>
             </div>
           </div>
@@ -3437,9 +3546,7 @@ export default function CompleteCrispFXR() {
     </div>
 
     <style>{`
-      .slider {
-        background: linear-gradient(90deg, #374151 0%, #3b82f6 50%, #8b5cf6 100%);
-      }
+      
       .slider::-webkit-slider-thumb {
         appearance: none;
         height: 20px;
