@@ -2396,11 +2396,11 @@ export default function CompleteCrispFXR() {
           <div className="grid grid-cols-2 gap-2 mb-3">
             <div className="flex items-center gap-1 bg-gray-800/50 rounded p-2">
               <Headphones className="w-3 h-3" />
-              <span className="text-xs">{Math.round(masterVolume * 100)}%</span>
+              <span className="text-xs">: {Math.round(masterVolume * 100)}%</span>
               <input type="range" min="0" max="1" step="0.1" value={masterVolume} onChange={(e) => setMasterVolume(parseFloat(e.target.value))} className="flex-1 slider" />
             </div>
             <div className="flex items-center gap-1 bg-gray-800/50 rounded p-2">
-              <span className="text-xs">Morph</span>
+              <span className="text-xs">Morph: </span>
               <span className="text-xs">{Math.round(morphAmount * 100)}%</span>
               <input type="range" min="0" max="1" step="0.01" value={morphAmount} onChange={(e) => setMorphAmount(parseFloat(e.target.value))} className="flex-1 slider" />
             </div>
@@ -2444,14 +2444,18 @@ export default function CompleteCrispFXR() {
           <button onClick={() => playSound('A')} disabled={!audioBuffer} className={`py-2 rounded text-xs font-semibold flex items-center justify-center gap-1 ${!audioBuffer ? 'bg-gray-700' : 'bg-green-600'}`}>
             <Play className="w-3 h-3" />A
           </button>
-          <button onClick={() => playSound('B')} disabled={!audioBufferB} className={`py-2 rounded text-xs font-semibold flex items-center justify-center gap-1 ${!audioBufferB ? 'bg-gray-700' : 'bg-emerald-600'}`}>
-            <Play className="w-3 h-3" />B
-          </button>
           <button onClick={toggleLoop} className={`py-2 rounded flex items-center justify-center gap-1 text-xs font-semibold ${isLooping ? 'bg-red-600' : 'bg-gray-600'}`}>
             {isLooping ? <PauseCircle className="w-3 h-3" /> : <Repeat className="w-3 h-3" />}
           </button>
+          <select value={exportFormat} onChange={(e) => setExportFormat(e.target.value)} className="py-2 bg-gray-800 rounded text-xs text-center">
+            <option value="wav">WAV</option>
+            <option value="json">JSON</option>
+          </select>
           <button onClick={exportSound} disabled={!currentBuffer} className="py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 rounded text-xs font-semibold flex items-center justify-center gap-1">
             <Download className="w-3 h-3" />Export
+          </button>
+          <button onClick={() => playSound('B')} disabled={!audioBufferB} className={`py-2 rounded text-xs font-semibold flex items-center justify-center gap-1 ${!audioBufferB ? 'bg-gray-700' : 'bg-emerald-600'}`}>
+            <Play className="w-3 h-3" />B
           </button>
         </div>
 
@@ -2541,17 +2545,6 @@ export default function CompleteCrispFXR() {
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="grid grid-cols-2 gap-2 mb-3">
-          <button onClick={mutateParams} className="py-2 bg-purple-600 rounded text-xs font-semibold flex items-center justify-center gap-1">
-            <Shuffle className="w-3 h-3" />Mutate
-          </button>
-          <select value={exportFormat} onChange={(e) => setExportFormat(e.target.value)} className="py-2 bg-gray-800 rounded text-xs text-center">
-            <option value="wav">WAV</option>
-            <option value="json">JSON</option>
-          </select>
-        </div>
-
         {/* Parameter Controls */}
         <div className="bg-gray-900/50 backdrop-blur rounded border border-gray-700 p-3">
           {/* Tabs - All in one row + toggle */}
@@ -2559,9 +2552,9 @@ export default function CompleteCrispFXR() {
             <div className="flex bg-gray-800/50 p-1 rounded flex-1 mr-2">
               {[
                 { id: 'basic', label: 'Basic' },
-                { id: 'envelope', label: 'Envelope' },
-                { id: 'effects', label: 'Effects' },
-                { id: 'advanced', label: 'Advanced' }
+                { id: 'envelope', label: 'Env.' },
+                { id: 'effects', label: 'FX' },
+                { id: 'advanced', label: 'Adv.' }
               ].map((tab) => (
                 <button
                   key={tab.id}
