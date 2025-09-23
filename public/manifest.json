@@ -1,0 +1,46 @@
+{
+  "short_name": "CrispFXR",
+  "name": "CrispFXR - 8-bit Sound Synthesizer",
+  "description": "Advanced 8-bit Sound Synthesizer for creating retro game sounds and chiptune music. Professional audio synthesis with real-time parameter control.",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "logo192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "logo512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#000000",
+  "background_color": "#111827",
+  "categories": ["music", "entertainment", "utilities", "productivity"],
+  "scope": "/",
+  "lang": "en-US",
+  "dir": "ltr",
+  "prefer_related_applications": false,
+  "edge_side_panel": {
+    "preferred_width": 480
+  },
+  "screenshots": [
+    {
+      "src": "logo512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "platform": "wide",
+      "label": "CrispFXR Main Interface"
+    }
+  ]
+}

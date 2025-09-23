@@ -1,0 +1,207 @@
+/* Simplified mobile-optimized App styles */
+.App {
+  text-align: center;
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+/* Ensure proper mobile layout */
+body, html, #root {
+  overflow-x: hidden;
+  width: 100%;
+}
+
+#root {
+  overflow-y: auto;
+}
+
+/* Mobile-specific improvements */
+@media (max-width: 767px) {
+  /* Larger buttons for mobile */
+  button {
+    min-height: 52px !important;
+    min-width: 52px !important;
+    padding: 14px 18px !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    border-radius: 12px !important;
+  }
+
+  /* Larger text for mobile */
+  .text-5xl {
+    font-size: 2.5rem !important;
+    line-height: 1.2 !important;
+    margin-bottom: 1rem !important;
+  }
+
+  .text-lg {
+    font-size: 1.125rem !important;
+  }
+
+  .text-sm {
+    font-size: 0.95rem !important;
+  }
+
+  /* Better mobile spacing */
+  .p-6 {
+    padding: 1rem !important;
+  }
+
+  .p-4 {
+    padding: 1rem !important;
+  }
+
+  .gap-6 {
+    gap: 1rem !important;
+  }
+
+  .gap-4 {
+    gap: 0.75rem !important;
+  }
+
+  .gap-3 {
+    gap: 0.5rem !important;
+  }
+
+  .mb-8 {
+    margin-bottom: 1.5rem !important;
+  }
+
+  .mb-6 {
+    margin-bottom: 1rem !important;
+  }
+
+  .mb-4 {
+    margin-bottom: 0.75rem !important;
+  }
+
+  /* Mobile grid layouts */
+  .grid-cols-8 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .lg\:grid-cols-8 {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .md\:grid-cols-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .xl\:grid-cols-4 {
+    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+  }
+
+  .lg\:grid-cols-3 {
+    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+  }
+
+  .lg\:grid-cols-2 {
+    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+  }
+
+  /* Force vertical layout for flex containers */
+  .flex.justify-center.items-center.gap-6 {
+    flex-direction: column !important;
+    gap: 1rem !important;
+    align-items: center !important;
+  }
+
+  /* Force vertical layout for action buttons */
+  .flex.justify-center.gap-4 {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+    width: 100% !important;
+  }
+
+  /* Larger touch targets for sliders */
+  input[type="range"] {
+    height: 16px !important;
+    min-height: 44px !important;
+  }
+
+  /* Better mobile canvas sizes */
+  .h-24 {
+    height: 3.5rem !important;
+  }
+
+  .h-20 {
+    height: 3rem !important;
+  }
+
+  .h-12 {
+    height: 2.5rem !important;
+  }
+}
+
+/* Very small screens */
+@media (max-width: 374px) {
+  .text-5xl {
+    font-size: 2rem !important;
+  }
+
+  button {
+    padding: 12px 16px !important;
+    font-size: 15px !important;
+  }
+
+  .p-6 {
+    padding: 0.75rem !important;
+  }
+
+  .gap-3 {
+    gap: 0.25rem !important;
+  }
+}
+
+/* Touch device improvements */
+@media (pointer: coarse) {
+  /* Remove hover effects on touch devices */
+  .hover\:scale-105:hover {
+    transform: none !important;
+  }
+
+  .hover\:bg-blue-700:hover,
+  .hover\:bg-green-700:hover,
+  .hover\:bg-purple-700:hover,
+  .hover\:bg-gray-700:hover {
+    background-color: inherit !important;
+  }
+
+  /* Add touch feedback */
+  button:active {
+    transform: scale(0.95) !important;
+    opacity: 0.8 !important;
+  }
+}
+
+/* iOS specific fixes */
+@supports (-webkit-touch-callout: none) {
+  /* Prevent zoom on input focus */
+  input, select, textarea {
+    font-size: 16px !important;
+    transform: translateZ(0);
+  }
+
+  button {
+    font-size: 16px !important;
+  }
+}
+
+/* Focus states for accessibility */
+button:focus,
+input:focus,
+select:focus {
+  outline: 3px solid #3b82f6 !important;
+  outline-offset: 2px !important;
+}

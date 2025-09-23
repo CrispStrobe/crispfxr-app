@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">CrispFXR</string>
+    <string name="title_activity_main">CrispFXR</string>
+    <string name="package_name">com.crispstrobe.crispfxr</string>
+    <string name="custom_url_scheme">com.crispstrobe.crispfxr</string>
+</resources>

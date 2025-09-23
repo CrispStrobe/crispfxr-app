@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+
+    <!-- Mobile-optimized viewport -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+
+    <!-- Theme and app configuration -->
+    <meta name="theme-color" content="#000000" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="CrispFXR" />
+    <meta name="application-name" content="CrispFXR" />
+
+    <!-- Prevent iOS from detecting phone numbers -->
+    <meta name="format-detection" content="telephone=no" />
+
+    <!-- SEO and App Store optimization -->
+    <meta name="description" content="Advanced 8-bit Sound Synthesizer - Create retro game sounds and chiptune music with professional audio synthesis tools." />
+    <meta name="keywords" content="8-bit, chiptune, synthesizer, retro, game audio, sound effects, music production, sfxr" />
+    <meta name="author" content="CrispFXR" />
+    <meta name="robots" content="index, follow" />
+
+    <!-- Open Graph meta tags for social sharing -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="CrispFXR - 8-bit Sound Synthesizer" />
+    <meta property="og:description" content="Advanced 8-bit Sound Synthesizer for creating retro game sounds and chiptune music" />
+    <meta property="og:image" content="%PUBLIC_URL%/logo512.png" />
+    <meta property="og:url" content="https://your-domain.com" />
+    <meta property="og:site_name" content="CrispFXR" />
+
+    <!-- Twitter Card meta tags -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="CrispFXR - 8-bit Sound Synthesizer" />
+    <meta name="twitter:description" content="Advanced 8-bit Sound Synthesizer for creating retro game sounds and chiptune music" />
+    <meta name="twitter:image" content="%PUBLIC_URL%/logo512.png" />
+
+    <!-- App icons -->
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="%PUBLIC_URL%/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="16x16" href="%PUBLIC_URL%/favicon.ico" />
+
+    <!-- PWA manifest -->
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+
+    <!-- Preconnect to external domains for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+
+    <!-- Performance optimization -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="msapplication-TileColor" content="#000000" />
+    <meta name="msapplication-config" content="%PUBLIC_URL%/browserconfig.xml" />
+
+    <!-- Security headers -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' blob: data: https:; media-src 'self' blob: data:;" />
+
+    <!-- App title -->
+    <title>CrispFXR - 8-bit Sound Synthesizer</title>
+
+    <!-- Prevent FOUC (Flash of Unstyled Content) -->
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        background-color: #111827;
+        color: #ffffff;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      }
+
+      #root {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .loading {
+        text-align: center;
+        opacity: 0.7;
+      }
+
+      .loading::after {
+        content: '♪';
+        font-size: 2rem;
+        animation: pulse 1s infinite;
+      }
+
+      @keyframes pulse {
+        0%, 100% { opacity: 0.5; }
+        50% { opacity: 1; }
+      }
+    </style>
+  </head>
+  <body>
+    <noscript>
+      <div style="padding: 2rem; text-align: center; background: #111827; color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; flex-direction: column;">
+        <h1>CrispFXR</h1>
+        <p>You need to enable JavaScript to run this audio synthesizer app.</p>
+        <p>Please enable JavaScript in your browser settings and reload the page.</p>
+      </div>
+    </noscript>
+
+    <div id="root">
+      <div class="loading">Loading CrispFXR</div>
+    </div>
+
+    <!-- Service Worker registration for PWA (optional) -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/sw.js')
+            .then(function(registration) {
+              console.log('SW registered: ', registration);
+            })
+            .catch(function(registrationError) {
+              console.log('SW registration failed: ', registrationError);
+            });
+        });
+      }
+    </script>
+  </body>
+</html>
