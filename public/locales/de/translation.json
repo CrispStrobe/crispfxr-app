@@ -1,0 +1,84 @@
+{
+    "appTitle": "CrispFXR",
+    "appSubtitle": "Fortschrittlicher 8-Bit Sound-Synthesizer",
+    "controls": {
+        "volume": "Laut:",
+        "morph": "Morph:",
+        "slotA": "Slot A",
+        "slotB": "Slot B",
+        "copy": "Kopieren",
+        "playA": "Spiele A",
+        "playB": "Spiele B",
+        "loop": "Loop",
+        "stopLoop": "Loop Stopp",
+        "mutate": "Mutieren",
+        "export": "Export {{slot}}",
+        "import": "Einstellung Import"
+    },
+    "presets": {
+        "title": "Sound-Vorbelegungen",
+        "pickupCoin": "Münze", "laserShoot": "Laser", "explosion": "Explosion", "powerUp": "PowerUp", "hitHurt": "Treffer", "jump": "Sprung", "ambient": "Ambiente", "random": "Zufall", "blip": "Blip", "zap": "Zap", "woosh": "Woosh", "drone": "Drohne", "click": "Klick", "glitch": "Glitch", "portal": "Portal", "warning": "Warnung"
+    },
+    "quality": {
+        "title": "Audioqualität",
+        "clip": "CLIP!",
+        "ok": "OK",
+        "rate": "Rate:",
+        "bits": "Bits:",
+        "exportFormats": {
+          "wav": "WAV-Audio",
+          "json": "JSON-Preset"
+        }
+    },
+    "analysis": {
+        "waveformA": "Wellenform A",
+        "waveformB": "Wellenform B",
+        "spectrum": "Frequenzen",
+        "level": "Pegel",
+        "envelope": "Lautstärken"
+    },
+    "tabs": {
+        "basic": "Basis",
+        "envelope": "Hüllkurve",
+        "effects": "Effekte",
+        "advanced": "Erweitert"
+    },
+    "waveforms": {
+        "title": "Wellenform",
+        "square": "Rechteck", "sawtooth": "Sägezahn", "sine": "Sinus", "noise": "Rauschen"
+    },
+    "noiseTypes": {
+        "title": "Rauschtyp",
+        "white": "Weiß", "pink": "Rosa", "brown": "Braun"
+    },
+    "paramInfo": {
+        "waveform": { "title": "Wellenform-Anzeige", "description": "Zeigt die Form der Schallwelle. Es stellt die Amplitude (Lautstärke) des Klangs über seine kurze Dauer dar.", "technical": "Eine Zeitbereichsdarstellung des Audio-Puffers. Die Y-Achse ist die Amplitude (-1 bis 1) und die X-Achse ist die Zeit." },
+        "spectrum": { "title": "Frequenzspektrum", "description": "Visualisiert, welche Frequenzen (von tief bis hoch) im Klang vorhanden sind. Höhere Balken bedeuten, dass eine Frequenz dominanter ist.", "technical": "Eine Frequenzbereichsdarstellung, abgeleitet von einer Diskreten Fourier-Transformation (DFT). Die X-Achse ist die Frequenz (logarithmische Skala) und die Y-Achse ist die Stärke." },
+        "amplitudeMeter": { "title": "Amplitudenmesser", "description": "Zeigt die Lautstärkepegel des Klangs an. RMS ist die durchschnittliche Lautstärke, während PEAK den lautesten einzelnen Punkt anzeigt.", "technical": "Berechnet den Effektivwert (RMS) und die Spitzenamplitude und wandelt sie in Dezibel (dBFS) um. Ein Spitzenwert nahe 0 dB deutet auf mögliches Clipping hin." },
+        "amplitudeEnvelope": { "title": "Lautstärkehüllkurve", "description": "Zeigt die Gesamtform der Lautstärke des Klangs von Anfang bis Ende. Diese wird durch die Parameter Attack, Sustain und Decay geformt.", "technical": "Berechnet die RMS-Amplitude über kleine Zeitfenster, um die Gesamtkontur der Amplitude des Klangs über seine volle Dauer darzustellen." },
+        "waveformType": { "title": "Wellenform", "description": "Der grundlegende Baustein des Klangs. Jede Form hat einen einzigartigen harmonischen Inhalt und Charakter.\n\n• Rechteck: Hell, surrend, hohl. Klassischer Retro-Game-Sound.\n• Sägezahn: Reich, scharf, voll. Ideal für Leads und Bässe.\n• Sinus: Rein, weich, sauber. Der grundlegendste Ton ohne Obertöne.\n• Rauschen: Zischend und zufällig. Wird für Percussion und Effekte wie Wind oder Explosionen verwendet.", "technical": "Legt die Grundform des Oszillators fest. Rechteckwellen enthalten ungerade Obertöne, Sägezahnwellen enthalten alle Obertöne, und Sinuswellen enthalten nur die Grundfrequenz." },
+        "noiseType": { "title": "Rauschtyp", "description": "Verschiedene 'Klangfarben' von Rauschen, jede mit einer anderen Frequenzbalance.\n\n• Weiß: Zischendes Rauschen mit gleicher Energie über alle Frequenzen.\n• Rosa: Tiefer, wie ein Wasserfall, mit weniger hochfrequenten Anteilen.\n• Braun: Ein tiefes Grollen, wie ferner Donner, das die Bassfrequenzen betont.", "technical": "Beschreibt die spektrale Leistungsdichte. Weißes Rauschen ist flach (gleiche Leistung pro Hz). Bei rosa Rauschen fällt die Leistung um 3 dB pro Oktave. Bei braunem (Brownsche) Rauschen fällt die Leistung um 6 dB pro Oktave." },
+        "p_base_freq": { "label": "Grundfreq.", "title": "Grundfrequenz", "description": "Steuert die grundlegende Tonhöhe des Klangs. Höhere Werte erzeugen höhere Töne.", "technical": "Normalisierter Frequenzwert, wobei 1,0 ungefähr 440Hz (A4) entspricht. Der Bereich wird während der Synthese zwischen 20Hz und 20kHz geklemmt." },
+        "p_freq_ramp": { "label": "Freq-Rampe", "title": "Frequenzrampe (Slide)", "description": "Lässt die Tonhöhe über die Dauer des Klangs ansteigen (positiv) oder abfallen (negativ).", "technical": "Eine lineare Modulation, die der Grundfrequenz im Laufe der Zeit hinzugefügt wird. Erzeugt Sweeps, Riser und Dive-Bomb-Effekte." },
+        "p_freq_limit": { "label": "Freq-Limit", "title": "Frequenzgrenze", "description": "Setzt eine minimale Tonhöhe für abfallende Frequenz-Slides, um zu verhindern, dass sie unhörbar tief werden.", "technical": "Eine untere Grenze für die Frequenz. Nützlich für Klänge wie Laser oder Einschläge, die nach unten gleiten, aber nicht verschwinden sollen." },
+        "p_repeat_speed": { "label": "Retrigger", "title": "Retrigger-Rate", "description": "Löst die Hüllkurve des Klangs schnell hintereinander aus, was einen stotternden oder surrenden Effekt erzeugt.", "technical": "Wendet eine sägezahnähnliche Amplitudenmodulation auf die Hüllkurve an und simuliert schnelles erneutes Auslösen mit einer Rate, die proportional zu diesem Wert ist." },
+        "p_env_attack": { "label": "Attack", "title": "Attack-Zeit", "description": "Wie schnell der Klang von Stille auf seine maximale Lautstärke ansteigt.", "technical": "Die Dauer der Attack-Phase der ADSR-Hüllkurve in Sekunden. Ein Wert von 0 ist sofort." },
+        "p_env_sustain": { "label": "Sustain", "title": "Sustain-Zeit", "description": "Wie lange der Klang seine Lautstärke nach dem anfänglichen Attack hält.", "technical": "Die Dauer der Sustain-Phase der ADSR-Hüllkurve in Sekunden." },
+        "p_env_decay": { "label": "Decay", "title": "Decay-Zeit", "description": "Wie schnell der Klang nach Ende der Sustain-Periode in die Stille ausblendet.", "technical": "Die Dauer der Decay-Phase der ADSR-Hüllkurve in Sekunden." },
+        "p_env_punch": { "label": "Punch", "title": "Sustain-Punch", "description": "Fügt zu Beginn der Sustain-Phase einen anfänglichen Lautstärkeschub hinzu, was einen perkussiveren oder 'druckvolleren' Klang erzeugt.", "technical": "Ein Amplitudenschub am Anfang der Sustain-Phase, der dann abklingt und eine sekundäre Attack-Decay-Form innerhalb des Sustains erzeugt." },
+        "p_vib_speed": { "label": "Vib-Tempo", "title": "Vibrato-Geschwindigkeit", "description": "Steuert, wie schnell die Tonhöhe auf und ab schwankt (Vibrato).", "technical": "Die Frequenz des Niederfrequenzoszillators (LFO), der die Tonhöhe moduliert." },
+        "p_vib_strength": { "label": "Vib-Tiefe", "title": "Vibrato-Tiefe", "description": "Steuert, wie stark die Tonhöhe auf und ab schwankt (Vibrato-Tiefe).", "technical": "Die Amplitude des LFOs, der die Tonhöhe moduliert und die Intensität des Vibrato-Effekts bestimmt." },
+        "distortion": { "label": "Verzerrung", "title": "Verzerrung", "description": "Fügt Wärme, Körnigkeit und aggressive Obertöne hinzu, indem die Wellenform beschnitten wird.", "technical": "Wendet einen hyperbolischen Tangens `tanh(x)` Waveshaping-Algorithmus auf das Signal an, der ungerade Obertöne hinzufügt." },
+        "bit_crush": { "label": "Bit Crush", "title": "Bit Crush", "description": "Reduziert die digitale Auflösung des Klangs und erzeugt einen knackigen, Lo-Fi-, Retro-Videospiel-Sound.", "technical": "Quantisiert die Amplitude des Signals auf eine niedrigere Bittiefe, was Quantisierungsrauschen einführt." },
+        "p_lpf_freq": { "label": "Tiefpass", "title": "Tiefpassfilter", "description": "Schneidet hohe Frequenzen ab, wodurch der Klang dunkler, gedämpfter oder weiter entfernt erscheint.", "technical": "Die Grenzfrequenz eines einfachen einpoligen Tiefpassfilters. Ein Wert von 1,0 bedeutet, dass der Filter vollständig geöffnet ist (kein Effekt)." },
+        "p_hpf_freq": { "label": "Hochpass", "title": "Hochpassfilter", "description": "Schneidet tiefe Frequenzen ab, wodurch der Klang dünner, blecherner wird oder unerwünschtes Bassdröhnen entfernt wird.", "technical": "Die Grenzfrequenz eines einfachen einpoligen Hochpassfilters. Ein Wert von 0,0 bedeutet, dass der Filter keinen Effekt hat." },
+        "chorus_rate": { "label": "Chorus", "title": "Chorus-Rate", "description": "Die Geschwindigkeit des wabernden, schimmernden Chorus-Effekts.", "technical": "Die Modulationsrate der Verzögerungsleitung des Chorus-Effekts, die den Eindruck mehrerer Stimmen erzeugt." },
+        "delay_time": { "label": "Delay", "title": "Delay-Zeit", "description": "Die Zeit zwischen dem ursprünglichen Klang und seinem ersten Echo.", "technical": "Die Länge des Delay-Puffers, die die Zeit bis zur Wiedergabe des verzögerten Signals bestimmt." },
+        "fm_freq": { "label": "FM Freq", "title": "FM-Frequenz", "description": "Die Tonhöhe des modulierenden Oszillators bei der Frequenzmodulation (FM)-Synthese. Erzeugt komplexe, metallische oder glockenähnliche Töne.", "technical": "Legt die Frequenz eines sekundären (Modulator-)Oszillators fest, dessen Ausgang die Frequenz des primären (Träger-)Oszillators modifiziert." },
+        "fm_depth": { "label": "FM Tiefe", "title": "FM-Tiefe", "description": "Die Intensität des FM-Synthese-Effekts.", "technical": "Die Amplitude des Modulator-Oszillators, die bestimmt, wie stark er die Frequenz des Trägers beeinflusst." },
+        "ring_mod_freq": { "label": "Ring Freq", "title": "Ringmodulator-Frequenz", "description": "Die Frequenz der Trägerwelle für den Ringmodulator. Erzeugt dissonante, roboterhafte und metallische Texturen.", "technical": "Die Frequenz der Sinuswelle, mit der das Eingangssignal multipliziert wird, wodurch Summen- und Differenzfrequenzen entstehen." },
+        "ring_mod_depth": { "label": "Ring Tiefe", "title": "Ringmodulator-Tiefe", "description": "Der Mischanteil des Ringmodulations-Effekts.", "technical": "Steuert das Wet/Dry-Verhältnis zwischen dem ursprünglichen Signal und dem ringmodulierten Signal." },
+        "delay_feedback": { "label": "Feedback", "title": "Delay-Feedback", "description": "Steuert, wie viele Echos vom Delay-Effekt erzeugt werden. Hohe Werte können zu unkontrolliert lauten Klängen führen.", "technical": "Der Anteil des verzögerten Signals, der wieder in den Eingang der Delay-Leitung eingespeist wird." },
+        "sound_vol": { "label": "Lautstärke", "title": "Master-Lautstärke", "description": "Die endgültige Lautstärke dieses spezifischen Sound-Patches. Diese wird vor der globalen Master-Lautstärke angewendet.", "technical": "Ein abschließender linearer Amplitudenmultiplikator für den erzeugten Puffer. Ein Wert von 1,0 entspricht 0dBFS (keine Änderung)." }
+    }
+}

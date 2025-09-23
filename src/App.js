@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import ReactDOM from 'react-dom';
-import { Play, Download, Zap, Volume2, Settings, Activity, Lock, Unlock, Copy, RotateCcw, Shuffle, PauseCircle, Headphones, Repeat } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Play, Download, Zap, Volume2, Settings, Activity, Lock, Unlock, Copy, Shuffle, PauseCircle, Headphones, Repeat, ChevronDown } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
@@ -73,7 +74,7 @@ class SynthParams {
     return this;
   }
 
-  // All preset methods remain the same...
+  // Preset methods ...
   pickupCoin() {
     this.reset();
     this.wave_type = SAWTOOTH;
@@ -888,9 +889,6 @@ class AudioSynthesizer {
   }
 }
 
-// Rest of the component code remains the same...
-// (All the other components like WaveformDisplay, ParameterInfo, etc. remain exactly the same)
-
 // Smooth parameter interpolation hook
 const useSmoothParam = (targetValue, speed = 0.1) => {
   const [currentValue, setCurrentValue] = useState(targetValue || 0);
@@ -1008,7 +1006,7 @@ const ParameterInfo = ({ title, description, technical }) => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Handlers remain the same...
+  // Handlers 
   const handleMouseEnter = () => {
     if (!isMobile && ref.current) {
       const rect = ref.current.getBoundingClientRect();
@@ -1121,7 +1119,7 @@ const ParameterInfo = ({ title, description, technical }) => {
 };
 
 // Enhanced spectrum analyzer with real FFT
-const SpectrumAnalyzer = ({ audioBuffer }) => {
+const SpectrumAnalyzer = ({ audioBuffer, title }) => {
   const canvasRef = useRef(null);
 
   const computeDFT = (samples, sampleRate) => {
@@ -1250,7 +1248,7 @@ const SpectrumAnalyzer = ({ audioBuffer }) => {
 
   return (
     <div>
-      <h3 className="text-lg font-semibold mb-2 text-white">Frequency Spectrum</h3>
+      <h3 className="text-lg font-semibold mb-2 text-white">{title}</h3>
       <canvas
         ref={canvasRef}
         width={200}
@@ -1397,175 +1395,6 @@ const AmplitudeEnvelope = ({ audioBuffer, title = "Volume Envelope" }) => {
       />
     </div>
   );
-};
-
-// Parameter information database (same as before)
-const parameterInfo = {
-  waveform: {
-    title: "Waveform Display",
-    description: "Shows the shape of the sound wave. It plots the amplitude (volume) of the sound over its short duration.",
-    technical: "A time-domain representation of the audio buffer. The Y-axis is amplitude (-1 to 1) and the X-axis is time."
-  },
-  spectrum: {
-    title: "Frequency Spectrum",
-    description: "Visualizes which frequencies (low to high) are present in the sound. Taller bars mean that frequency is more prominent.",
-    technical: "A frequency-domain representation derived from a Discrete Fourier Transform (DFT). The X-axis is frequency (logarithmic scale) and the Y-axis is magnitude."
-  },
-  amplitudeMeter: {
-    title: "Amplitude Meter",
-    description: "Displays the sound's volume levels. RMS is the average volume, while PEAK shows the loudest single point.",
-    technical: "Calculates Root Mean Square (RMS) and Peak amplitude, converting them to decibels (dBFS). A peak near 0dB indicates potential clipping."
-  },
-  amplitudeEnvelope: {
-    title: "Volume Envelope",
-    description: "Shows the overall shape of the sound's volume from start to finish. This is shaped by the Attack, Sustain, and Decay parameters.",
-    technical: "Calculates the RMS amplitude over small time windows to plot the sound's overall amplitude contour over its full duration."
-  },
-  waveformType: {
-    title: "Waveform Type",
-    description: "The fundamental building block of the sound. Each shape has a unique harmonic content and character.\n\n• Square: Bright, buzzy, hollow. Classic retro game sound.\n• Sawtooth: Rich, sharp, full. Great for leads and basses.\n• Sine: Pure, smooth, clean. The most basic tone with no overtones.\n• Noise: Hissy and random. Used for percussion and effects like wind or explosions.",
-    technical: "Sets the oscillator's fundamental shape. Square waves contain odd harmonics, Sawtooth waves contain all harmonics, and Sine waves contain only the fundamental frequency."
-  },
-  noiseType: {
-    title: "Noise Type",
-    description: "Different 'colors' of noise, each with a different balance of frequencies.\n\n• White: Hissy static with equal energy across all frequencies.\n• Pink: Deeper, like a waterfall, with less high-frequency content.\n• Brown: A low rumble, like distant thunder, emphasizing bass frequencies.",
-    technical: "Describes the power spectral density. White noise is flat (equal power per Hz). Pink noise power drops 3dB per octave. Brown(ian) noise power drops 6dB per octave."
-  },
-  p_base_freq: {
-    title: "Base Frequency",
-    description: "Controls the fundamental pitch of the sound. Higher values create higher-pitched sounds.",
-    technical: "Normalized frequency value, where 1.0 is approximately 440Hz (A4). The range is clamped between 20Hz and 20kHz during synthesis."
-  },
-  p_freq_ramp: {
-    title: "Frequency Ramp (Slide)",
-    description: "Makes the pitch slide up (positive) or down (negative) over the sound's duration.",
-    technical: "A linear modulation added to the base frequency over time. Creates sweeps, risers, and dive-bomb effects."
-  },
-  p_freq_limit: {
-    title: "Frequency Floor",
-    description: "Sets a minimum pitch for downward frequency slides, preventing them from becoming inaudibly low.",
-    technical: "A lower bound for the frequency. Useful for sounds like lasers or impacts that slide down but shouldn't disappear."
-  },
-  p_freq_dramp: {
-    title: "Delta Slide",
-    description: "Accelerates or decelerates the frequency slide over time, creating curved pitch changes.",
-    technical: "Modulates the `p_freq_ramp` itself, creating a second-order change in frequency (acceleration)."
-  },
-  p_repeat_speed: {
-    title: "Retrigger Rate",
-    description: "Rapidly re-triggers the sound's envelope, creating a stuttering or buzzing effect.",
-    technical: "Applies a sawtooth-like amplitude modulation to the envelope, simulating rapid re-triggering at a rate proportional to this value."
-  },
-  p_env_attack: {
-    title: "Attack Time",
-    description: "How quickly the sound fades in from silence to its maximum volume.",
-    technical: "The duration of the Attack phase of the ADSR envelope, in seconds. A value of 0 is instantaneous."
-  },
-  p_env_sustain: {
-    title: "Sustain Time",
-    description: "How long the sound holds its volume after the initial attack.",
-    technical: "The duration of the Sustain phase of the ADSR envelope, in seconds."
-  },
-  p_env_decay: {
-    title: "Decay Time",
-    description: "How quickly the sound fades out to silence after the sustain period ends.",
-    technical: "The duration of the Decay phase of the ADSR envelope, in seconds."
-  },
-  p_env_punch: {
-    title: "Sustain Punch",
-    description: "Adds an initial volume boost at the beginning of the sustain phase, creating a more percussive or 'punchy' sound.",
-    technical: "An amplitude boost applied at the start of the sustain phase which then decays, creating a secondary attack-decay shape within the sustain."
-  },
-  p_vib_speed: {
-    title: "Vibrato Speed",
-    description: "Controls how fast the pitch wavers up and down (vibrato).",
-    technical: "The frequency of the Low-Frequency Oscillator (LFO) that modulates the pitch."
-  },
-  p_vib_strength: {
-    title: "Vibrato Depth",
-    description: "Controls how much the pitch wavers up and down (vibrato depth).",
-    technical: "The amplitude of the LFO that modulates the pitch, determining the intensity of the vibrato effect."
-  },
-  distortion: {
-    title: "Distortion",
-    description: "Adds warmth, grit, and aggressive harmonics by clipping the waveform.",
-    technical: "Applies a hyperbolic tangent `tanh(x)` waveshaping algorithm to the signal, adding odd harmonics."
-  },
-  bit_crush: {
-    title: "Bit Crush",
-    description: "Reduces the sound's digital resolution, creating a crunchy, lo-fi, retro video game sound.",
-    technical: "Quantizes the signal's amplitude to a lower bit depth, introducing quantization error noise."
-  },
-  p_lpf_freq: {
-    title: "Low-Pass Filter",
-    description: "Cuts high frequencies, making the sound darker, more muffled, or appear farther away.",
-    technical: "The cutoff frequency of a simple one-pole low-pass filter. Value of 1.0 means the filter is fully open (no effect)."
-  },
-  p_lpf_resonance: {
-    title: "LPF Resonance",
-    description: "Creates a resonant 'peak' or 'whistle' at the Low-Pass Filter's cutoff frequency, accentuating the filter's effect.",
-    technical: "Boosts frequencies near the cutoff point. High values can lead to self-oscillation, creating a sine-like tone."
-  },
-  p_hpf_freq: {
-    title: "High-Pass Filter",
-    description: "Cuts low frequencies, making the sound thinner, tinnier, or removing unwanted bass rumble.",
-    technical: "The cutoff frequency of a simple one-pole high-pass filter. Value of 0.0 means the filter has no effect."
-  },
-  chorus_rate: {
-    title: "Chorus Rate",
-    description: "The speed of the warbling, shimmering chorus effect.",
-    technical: "The modulation rate of the chorus effect's delay line, creating a sense of multiple voices."
-  },
-  delay_time: {
-    title: "Delay Time",
-    description: "The time between the original sound and its first echo.",
-    technical: "The length of the delay buffer, determining the time until the delayed signal is played back."
-  },
-  flanger_rate: {
-    title: "Flanger Rate",
-    description: "The speed of the 'whooshing' jet-engine flanger effect.",
-    technical: "The modulation rate of the flanger's short, sweeping delay line."
-  },
-  flanger_depth: {
-    title: "Flanger Depth",
-    description: "The intensity or width of the flanger's sweeping effect.",
-    technical: "The modulation depth of the flanger's delay line."
-  },
-  flanger_delay: {
-    title: "Flanger Delay",
-    description: "The base delay time for the flanger, affecting its tonal character.",
-    technical: "Sets the center point around which the flanger's delay time is modulated."
-  },
-  fm_freq: {
-    title: "FM Frequency",
-    description: "The pitch of the modulating oscillator in Frequency Modulation (FM) synthesis. Creates complex, metallic, or bell-like tones.",
-    technical: "Sets the frequency of a secondary (modulator) oscillator whose output modifies the primary (carrier) oscillator's frequency."
-  },
-  fm_depth: {
-    title: "FM Depth",
-    description: "The intensity of the FM synthesis effect.",
-    technical: "The amplitude of the modulator oscillator, determining how strongly it affects the carrier's frequency."
-  },
-  ring_mod_freq: {
-    title: "Ring Mod Frequency",
-    description: "The frequency of the carrier wave for the ring modulator. Creates dissonant, robotic, and metallic textures.",
-    technical: "The frequency of the sine wave that the input signal is multiplied by, producing sum and difference frequencies."
-  },
-  ring_mod_depth: {
-    title: "Ring Mod Depth",
-    description: "The mix amount of the ring modulation effect.",
-    technical: "Controls the wet/dry mix between the original signal and the ring-modulated signal."
-  },
-  delay_feedback: {
-    title: "Delay Feedback",
-    description: "Controls how many echoes are produced by the delay effect. High values can lead to runaway, loud sounds.",
-    technical: "The amount of the delayed signal that is fed back into the delay line's input."
-  },
-  sound_vol: {
-    title: "Master Volume",
-    description: "The final volume of this specific sound patch. This is applied before the global master volume.",
-    technical: "A final linear amplitude multiplier for the generated buffer. Value of 1.0 represents 0dBFS (no change)."
-  }
 };
 
 // Parameter slider (same as before)
@@ -1771,6 +1600,8 @@ const NumericInput = ({ label, value, onChange, min = -1, max = 1, step = 0.01, 
 
 // Main component with iOS fixes
 export default function CompleteCrispFXR() {
+  const { t, i18n } = useTranslation();
+
   const [params, setParams] = useState(new SynthParams());
   const [paramsB, setParamsB] = useState(new SynthParams());
   const [audioBuffer, setAudioBuffer] = useState(null);
@@ -1795,6 +1626,85 @@ export default function CompleteCrispFXR() {
   const currentParams = activeSlot === 'A' ? params : paramsB;
   const currentBuffer = activeSlot === 'A' ? audioBuffer : audioBufferB;
 
+  // --- MOVED INSIDE THE COMPONENT ---
+  // This data now has access to the `t` function and updates on language change.
+  const parameterInfo = useMemo(() => ({
+    waveform: { title: t('paramInfo.waveform.title'), description: t('paramInfo.waveform.description'), technical: t('paramInfo.waveform.technical') },
+    spectrum: { title: t('paramInfo.spectrum.title'), description: t('paramInfo.spectrum.description'), technical: t('paramInfo.spectrum.technical') },
+    amplitudeMeter: { title: t('paramInfo.amplitudeMeter.title'), description: t('paramInfo.amplitudeMeter.description'), technical: t('paramInfo.amplitudeMeter.technical') },
+    amplitudeEnvelope: { title: t('paramInfo.amplitudeEnvelope.title'), description: t('paramInfo.amplitudeEnvelope.description'), technical: t('paramInfo.amplitudeEnvelope.technical') },
+    waveformType: { title: t('paramInfo.waveformType.title'), description: t('paramInfo.waveformType.description'), technical: t('paramInfo.waveformType.technical') },
+    noiseType: { title: t('paramInfo.noiseType.title'), description: t('paramInfo.noiseType.description'), technical: t('paramInfo.noiseType.technical') },
+    p_base_freq: { title: t('paramInfo.p_base_freq.title'), description: t('paramInfo.p_base_freq.description'), technical: t('paramInfo.p_base_freq.technical') },
+    p_freq_ramp: { title: t('paramInfo.p_freq_ramp.title'), description: t('paramInfo.p_freq_ramp.description'), technical: t('paramInfo.p_freq_ramp.technical') },
+    p_freq_limit: { title: t('paramInfo.p_freq_limit.title'), description: t('paramInfo.p_freq_limit.description'), technical: t('paramInfo.p_freq_limit.technical') },
+    p_repeat_speed: { title: t('paramInfo.p_repeat_speed.title'), description: t('paramInfo.p_repeat_speed.description'), technical: t('paramInfo.p_repeat_speed.technical') },
+    p_env_attack: { title: t('paramInfo.p_env_attack.title'), description: t('paramInfo.p_env_attack.description'), technical: t('paramInfo.p_env_attack.technical') },
+    p_env_sustain: { title: t('paramInfo.p_env_sustain.title'), description: t('paramInfo.p_env_sustain.description'), technical: t('paramInfo.p_env_sustain.technical') },
+    p_env_decay: { title: t('paramInfo.p_env_decay.title'), description: t('paramInfo.p_env_decay.description'), technical: t('paramInfo.p_env_decay.technical') },
+    p_env_punch: { title: t('paramInfo.p_env_punch.title'), description: t('paramInfo.p_env_punch.description'), technical: t('paramInfo.p_env_punch.technical') },
+    p_vib_speed: { title: t('paramInfo.p_vib_speed.title'), description: t('paramInfo.p_vib_speed.description'), technical: t('paramInfo.p_vib_speed.technical') },
+    p_vib_strength: { title: t('paramInfo.p_vib_strength.title'), description: t('paramInfo.p_vib_strength.description'), technical: t('paramInfo.p_vib_strength.technical') },
+    distortion: { title: t('paramInfo.distortion.title'), description: t('paramInfo.distortion.description'), technical: t('paramInfo.distortion.technical') },
+    bit_crush: { title: t('paramInfo.bit_crush.title'), description: t('paramInfo.bit_crush.description'), technical: t('paramInfo.bit_crush.technical') },
+    p_lpf_freq: { title: t('paramInfo.p_lpf_freq.title'), description: t('paramInfo.p_lpf_freq.description'), technical: t('paramInfo.p_lpf_freq.technical') },
+    p_hpf_freq: { title: t('paramInfo.p_hpf_freq.title'), description: t('paramInfo.p_hpf_freq.description'), technical: t('paramInfo.p_hpf_freq.technical') },
+    chorus_rate: { title: t('paramInfo.chorus_rate.title'), description: t('paramInfo.chorus_rate.description'), technical: t('paramInfo.chorus_rate.technical') },
+    delay_time: { title: t('paramInfo.delay_time.title'), description: t('paramInfo.delay_time.description'), technical: t('paramInfo.delay_time.technical') },
+    fm_freq: { title: t('paramInfo.fm_freq.title'), description: t('paramInfo.fm_freq.description'), technical: t('paramInfo.fm_freq.technical') },
+    fm_depth: { title: t('paramInfo.fm_depth.title'), description: t('paramInfo.fm_depth.description'), technical: t('paramInfo.fm_depth.technical') },
+    ring_mod_freq: { title: t('paramInfo.ring_mod_freq.title'), description: t('paramInfo.ring_mod_freq.description'), technical: t('paramInfo.ring_mod_freq.technical') },
+    ring_mod_depth: { title: t('paramInfo.ring_mod_depth.title'), description: t('paramInfo.ring_mod_depth.description'), technical: t('paramInfo.ring_mod_depth.technical') },
+    delay_feedback: { title: t('paramInfo.delay_feedback.title'), description: t('paramInfo.delay_feedback.description'), technical: t('paramInfo.delay_feedback.technical') },
+    sound_vol: { title: t('paramInfo.sound_vol.title'), description: t('paramInfo.sound_vol.description'), technical: t('paramInfo.sound_vol.technical') }
+  }), [t]);
+
+  const presets = useMemo(() => ([
+    { name: 'pickupCoin', label: `${t('presets.pickupCoin')} (1)`, color: 'bg-yellow-500', emoji: '💰' },
+    { name: 'laserShoot', label: `${t('presets.laserShoot')} (2)`, color: 'bg-red-500', emoji: '🔫' },
+    { name: 'explosion', label: `${t('presets.explosion')} (3)`, color: 'bg-orange-500', emoji: '💥' },
+    { name: 'powerUp', label: `${t('presets.powerUp')} (4)`, color: 'bg-green-500', emoji: '⚡' },
+    { name: 'hitHurt', label: `${t('presets.hitHurt')} (5)`, color: 'bg-purple-500', emoji: '💢' },
+    { name: 'jump', label: `${t('presets.jump')} (6)`, color: 'bg-blue-500', emoji: '🦘' },
+    { name: 'ambient', label: `${t('presets.ambient')} (7)`, color: 'bg-teal-500', emoji: '🌊' },
+    { name: 'random', label: `${t('presets.random')} (8)`, color: 'bg-gray-500', emoji: '🎲' },
+    { name: 'blip', label: `${t('presets.blip')} (9)`, color: 'bg-cyan-400', emoji: '📍' },
+    { name: 'zap', label: `${t('presets.zap')} (Q)`, color: 'bg-lime-400', emoji: '⚡' },
+    { name: 'woosh', label: `${t('presets.woosh')} (W)`, color: 'bg-indigo-500', emoji: '💨' },
+    { name: 'drone', label: `${t('presets.drone')} (E)`, color: 'bg-pink-500', emoji: '🎵' },
+    { name: 'click', label: `${t('presets.click')} (R)`, color: 'bg-amber-500', emoji: '👆' },
+    { name: 'glitch', label: `${t('presets.glitch')} (T)`, color: 'bg-fuchsia-500', emoji: '📟' },
+    { name: 'portal', label: `${t('presets.portal')} (Y)`, color: 'bg-emerald-500', emoji: '🌀' },
+    { name: 'warning', label: `${t('presets.warning')} (U)`, color: 'bg-red-700', emoji: '⚠️' }
+  ]), [t]);
+
+  const availableLanguages = [
+    { code: 'en', name: 'English', flag: '🇬🇧' },
+    { code: 'de', name: 'Deutsch', flag: '🇩🇪' }
+    // You can easily add more languages here later
+  ];
+
+  // Language Selector
+  const [langDropdownOpen, setLangDropdownOpen] = useState(false);
+  const dropdownWrapperRef = useRef(null);
+
+  const handleLangDropdownToggle = () => {
+    setLangDropdownOpen(prev => !prev);
+  };
+
+  // handles clicks outside the dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownWrapperRef.current && !dropdownWrapperRef.current.contains(event.target)) {
+        setLangDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const currentLang = availableLanguages.find(lang => i18n.language.startsWith(lang.code)) || availableLanguages[0];
+  
   // Error boundary and logging
   useEffect(() => {
     const handleError = (event) => {
@@ -1886,7 +1796,7 @@ export default function CompleteCrispFXR() {
     initApp();
   }, []);
 
-  // Rest of the useEffect hooks remain the same...
+  // Rest of the useEffect hooks ...
   useEffect(() => {
     const loadFromURL = () => {
       const urlParams = new URLSearchParams(window.location.search);
@@ -2475,142 +2385,110 @@ export default function CompleteCrispFXR() {
     setShowInfo(!showInfo);
   };
 
-  const presets = [
-    { name: 'pickupCoin', label: 'Pickup (1)', color: 'bg-yellow-500', emoji: '💰' },
-    { name: 'laserShoot', label: 'Laser (2)', color: 'bg-red-500', emoji: '🔫' },
-    { name: 'explosion', label: 'Explosion (3)', color: 'bg-orange-500', emoji: '💥' },
-    { name: 'powerUp', label: 'PowerUp (4)', color: 'bg-green-500', emoji: '⚡' },
-    { name: 'hitHurt', label: 'Hit (5)', color: 'bg-purple-500', emoji: '💢' },
-    { name: 'jump', label: 'Jump (6)', color: 'bg-blue-500', emoji: '🦘' },
-    { name: 'ambient', label: 'Ambient (7)', color: 'bg-teal-500', emoji: '🌊' },
-    { name: 'random', label: 'Random (8)', color: 'bg-gray-500', emoji: '🎲' },
-    { name: 'blip', label: 'Blip (9)', color: 'bg-cyan-400', emoji: '📍' },
-    { name: 'zap', label: 'Zap (Q)', color: 'bg-lime-400', emoji: '⚡' },
-    { name: 'woosh', label: 'Woosh (W)', color: 'bg-indigo-500', emoji: '💨' },
-    { name: 'drone', label: 'Drone (E)', color: 'bg-pink-500', emoji: '🎵' },
-    { name: 'click', label: 'Click (R)', color: 'bg-amber-500', emoji: '👆' },
-    { name: 'glitch', label: 'Glitch (T)', color: 'bg-fuchsia-500', emoji: '📟' },
-    { name: 'portal', label: 'Portal (Y)', color: 'bg-emerald-500', emoji: '🌀' },
-    { name: 'warning', label: 'Warning (U)', color: 'bg-red-700', emoji: '⚠️' }
-  ];
-
   const waveTypes = ['Square', 'Sawtooth', 'Sine', 'Noise'];
   const noiseTypes = ['White', 'Pink', 'Brown'];
 
   return (
-  
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-blue-950 text-white p-4 lg:p-6">
-      <div className="max-w-7xl mx-auto">
+    
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-blue-950 text-white">
+      <div className="max-w-7xl mx-auto p-4 lg:p-6">
+
         {/* Mobile Interface */}
         <div className="block lg:hidden">
-          {/* Title */}
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent text-center mb-3">
-            CrispFXR
-          </h1>
+          {/* New Flex Header container */}
+          <div className="flex justify-between items-center mb-3 px-1">
+  
+            {/* Title */}
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-pink-400 bg-clip-text text-transparent">
+              CrispFXR
+            </h1>
 
-          {/* Volume & Morph - FIXED draggable sliders */}
+            {/* Dropdown Wrapper */}
+            <div className="relative z-40" ref={dropdownWrapperRef}>
+              
+              {/* Trigger Button */}
+              <button 
+                onClick={handleLangDropdownToggle}
+                onTouchStart={handleLangDropdownToggle}
+                className="flex items-center gap-1 bg-gray-800/50 p-1 rounded-md text-xs font-semibold text-white active:bg-gray-700 transition-colors"
+              >
+                <span className="text-sm">{currentLang.flag}</span>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${langDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Dropdown Menu (with onTouchStart fix) */}
+              {langDropdownOpen && (
+                <div className="absolute right-0 top-full mt-2 w-48 origin-top-right rounded-md bg-gray-800 shadow-2xl ring-1 ring-black ring-opacity-20 focus:outline-none animate-fade-in-down">
+                  <div className="py-1">
+                    {availableLanguages.map((lang) => (
+                      <button
+                        key={lang.code}
+                        // --- THIS IS THE FIX ---
+                        onTouchStart={() => {
+                          i18n.changeLanguage(lang.code);
+                          setLangDropdownOpen(false);
+                        }}
+                        // ---------------------
+                        className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-gray-200 hover:bg-blue-600 active:bg-blue-700 transition-colors"
+                      >
+                        <span className="text-lg">{lang.flag}</span>
+                        <span>{lang.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+          </div>
+
           <div className="grid grid-cols-2 gap-2 mb-3">
             <div className="bg-gray-800/50 rounded p-2">
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-1">
                   <Headphones className="w-3 h-3" />
-                  <span className="text-xs">Vol:</span>
+                  <span className="text-xs">{t('controls.volume')}</span>
                 </div>
                 <span className="text-xs">{Math.round(masterVolume * 100)}%</span>
               </div>
-              <input 
-                type="range" 
-                min="0" 
-                max="1" 
-                step="0.01" 
-                value={masterVolume} 
-                onChange={(e) => setMasterVolume(parseFloat(e.target.value))} 
-                className="w-full slider"
-              />
+              <input type="range" min="0" max="1" step="0.01" value={masterVolume} onChange={(e) => setMasterVolume(parseFloat(e.target.value))} className="w-full slider"/>
             </div>
             <div className="bg-gray-800/50 rounded p-2">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs">Morph:</span>
+                <span className="text-xs">{t('controls.morph')}</span>
                 <span className="text-xs">{Math.round(morphAmount * 100)}%</span>
               </div>
-              <input 
-                type="range" 
-                min="0" 
-                max="1" 
-                step="0.01" 
-                value={morphAmount} 
-                onChange={(e) => setMorphAmount(parseFloat(e.target.value))} 
-                className="w-full slider"
-              />
+              <input type="range" min="0" max="1" step="0.01" value={morphAmount} onChange={(e) => setMorphAmount(parseFloat(e.target.value))} className="w-full slider"/>
             </div>
           </div>
 
-          {/* Slot Controls - FIXED Copy button */}
           <div className="grid grid-cols-3 gap-2 mb-3">
-            <button onClick={() => setActiveSlot('A')} className={`py-3 rounded text-xs font-semibold ${activeSlot === 'A' ? 'bg-blue-600' : 'bg-gray-700'}`}>
-              Slot A
-            </button>
-            <button onClick={copySlot} className="py-3 bg-gray-600 hover:bg-gray-500 rounded text-xs font-semibold">
-              <Copy className="w-3 h-3 inline mr-1" />Copy
-            </button>
-            <button onClick={() => setActiveSlot('B')} className={`py-3 rounded text-xs font-semibold ${activeSlot === 'B' ? 'bg-blue-600' : 'bg-gray-700'}`}>
-              Slot B
-            </button>
+            <button onClick={() => setActiveSlot('A')} className={`py-3 rounded text-xs font-semibold ${activeSlot === 'A' ? 'bg-blue-600' : 'bg-gray-700'}`}>{t('controls.slotA')}</button>
+            <button onClick={copySlot} className="py-3 bg-gray-600 hover:bg-gray-500 rounded text-xs font-semibold"><Copy className="w-3 h-3 inline mr-1" />{t('controls.copy')}</button>
+            <button onClick={() => setActiveSlot('B')} className={`py-3 rounded text-xs font-semibold ${activeSlot === 'B' ? 'bg-blue-600' : 'bg-gray-700'}`}>{t('controls.slotB')}</button>
           </div>
 
-          {/* Waveforms A & B with info icons */}
           <div className="grid grid-cols-2 gap-2 mb-3">
             <div className="bg-gray-900/50 backdrop-blur rounded border border-gray-700 p-2 relative group">
-              <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                <ParameterInfo {...parameterInfo.waveform} />
-              </div>
-              <WaveformDisplay
-                audioBuffer={audioBuffer}
-                isPlaying={isPlaying && activeSlot === 'A'}
-                title="Slot A"
-              />
+              <WaveformDisplay audioBuffer={audioBuffer} isPlaying={isPlaying && activeSlot === 'A'} title={t('controls.slotA')}/>
             </div>
             <div className="bg-gray-900/50 backdrop-blur rounded border border-gray-700 p-2 relative group">
-              <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                <ParameterInfo {...parameterInfo.waveform} />
-              </div>
-              <WaveformDisplay
-                audioBuffer={audioBufferB}
-                isPlaying={isPlaying && activeSlot === 'B'}
-                title="Slot B"
-              />
+              <WaveformDisplay audioBuffer={audioBufferB} isPlaying={isPlaying && activeSlot === 'B'} title={t('controls.slotB')}/>
             </div>
           </div>
 
-          {/* Play and Export Buttons - FIXED inline text */}
           <div className="grid grid-cols-4 gap-2 mb-3">
-            <button onClick={() => playSound('A')} disabled={!audioBuffer} className={`py-3 rounded text-xs font-semibold ${!audioBuffer ? 'bg-gray-700' : 'bg-green-600'}`}>
-              <Play className="w-3 h-3 inline mr-1" />Play A
-            </button>
-            <button onClick={toggleLoop} className={`py-3 rounded text-xs font-semibold ${isLooping ? 'bg-red-600' : 'bg-gray-600'}`}>
-              {isLooping ? <PauseCircle className="w-3 h-3 inline mr-1" /> : <Repeat className="w-3 h-3 inline mr-1" />}Loop
-            </button>
-            <button onClick={() => playSound('B')} disabled={!audioBufferB} className={`py-3 rounded text-xs font-semibold ${!audioBufferB ? 'bg-gray-700' : 'bg-emerald-600'}`}>
-              <Play className="w-3 h-3 inline mr-1" />Play B
-            </button>
-            <button onClick={exportSound} disabled={!currentBuffer} className="py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 rounded text-xs font-semibold">
-              <Download className="w-3 h-3 inline mr-1" />Export
-            </button>
+            <button onClick={() => playSound('A')} disabled={!audioBuffer} className={`py-3 rounded text-xs font-semibold ${!audioBuffer ? 'bg-gray-700' : 'bg-green-600'}`}><Play className="w-3 h-3 inline mr-1" />{t('controls.playA')}</button>
+            <button onClick={toggleLoop} className={`py-3 rounded text-xs font-semibold ${isLooping ? 'bg-red-600' : 'bg-gray-600'}`}>{isLooping ? <PauseCircle className="w-3 h-3 inline mr-1" /> : <Repeat className="w-3 h-3 inline mr-1" />}{isLooping ? t('controls.stopLoop') : t('controls.loop')}</button>
+            <button onClick={() => playSound('B')} disabled={!audioBufferB} className={`py-3 rounded text-xs font-semibold ${!audioBufferB ? 'bg-gray-700' : 'bg-emerald-600'}`}><Play className="w-3 h-3 inline mr-1" />{t('controls.playB')}</button>
+            <button onClick={exportSound} disabled={!currentBuffer} className="py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 rounded text-xs font-semibold"><Download className="w-3 h-3 inline mr-1" />{t('controls.export', { slot: '' })}</button>
           </div>
 
-          {/* Presets - Mobile */}
           <div className="bg-gray-900/50 backdrop-blur rounded border border-gray-700 p-2 mb-3">
-            <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
-              <Zap className="w-4 h-4" />
-              Presets
-            </h3>
+            <h3 className="text-sm font-semibold mb-2 flex items-center gap-2"><Zap className="w-4 h-4" />{t('presets.title')}</h3>
             <div className="grid grid-cols-4 gap-2">
               {presets.slice(0, 8).map((preset) => (
-                <button
-                  key={preset.name}
-                  onClick={() => loadPreset(preset.name)}
-                  className={`p-2 ${preset.color} hover:opacity-80 rounded transition-all text-xs font-semibold preset-btn`}
-                >
+                <button key={preset.name} onClick={() => loadPreset(preset.name)} className={`p-2 ${preset.color} hover:opacity-80 rounded transition-all text-xs font-semibold preset-btn`}>
                   <div className="text-sm">{preset.emoji}</div>
                   <div className="text-xs leading-tight">{preset.label.split(' ')[0]}</div>
                 </button>
@@ -2618,11 +2496,7 @@ export default function CompleteCrispFXR() {
             </div>
             <div className="grid grid-cols-4 gap-2 mt-2">
               {presets.slice(8).map((preset) => (
-                <button
-                  key={preset.name}
-                  onClick={() => loadPreset(preset.name)}
-                  className={`p-2 ${preset.color} hover:opacity-80 rounded transition-all text-xs font-semibold preset-btn`}
-                >
+                <button key={preset.name} onClick={() => loadPreset(preset.name)} className={`p-2 ${preset.color} hover:opacity-80 rounded transition-all text-xs font-semibold preset-btn`}>
                   <div className="text-sm">{preset.emoji}</div>
                   <div className="text-xs leading-tight">{preset.label.split(' ')[0]}</div>
                 </button>
@@ -2630,621 +2504,269 @@ export default function CompleteCrispFXR() {
             </div>
           </div>
 
-          {/* Analysis Visualizations - Clean titles with small info buttons */}
           <div className="grid grid-cols-3 gap-1 mb-3">
             <div className="bg-gray-900/50 backdrop-blur rounded border border-gray-700 p-1 relative">
-              <div className="flex items-center justify-between mb-1">
-                <h3 className="text-xs font-semibold text-white leading-tight">Spectrum</h3>
-                <ParameterInfo {...parameterInfo.spectrum} />
-              </div>
-              <SpectrumAnalyzer audioBuffer={currentBuffer} />
+              <div className="flex items-center justify-between mb-1"><h3 className="text-xs font-semibold text-white leading-tight">{t('analysis.spectrum')}</h3><ParameterInfo {...parameterInfo.spectrum} /></div>
+              <SpectrumAnalyzer audioBuffer={currentBuffer} title={t('analysis.spectrum')} />
             </div>
             <div className="bg-gray-900/50 backdrop-blur rounded border border-gray-700 p-1 relative">
-              <div className="flex items-center justify-between mb-1">
-                <h3 className="text-xs font-semibold text-white leading-tight">Level</h3>
-                <ParameterInfo {...parameterInfo.amplitudeMeter} />
-              </div>
-              <AmplitudeMeter audioBuffer={currentBuffer} />
+              <div className="flex items-center justify-between mb-1"><h3 className="text-xs font-semibold text-white leading-tight">{t('analysis.level')}</h3><ParameterInfo {...parameterInfo.amplitudeMeter} /></div>
+              <AmplitudeMeter audioBuffer={currentBuffer} title={t('analysis.level')} />
             </div>
             <div className="bg-gray-900/50 backdrop-blur rounded border border-gray-700 p-1 relative">
-              <div className="flex items-center justify-between mb-1">
-                <h3 className="text-xs font-semibold text-white leading-tight">Envelope</h3>
-                <ParameterInfo {...parameterInfo.amplitudeEnvelope} />
-              </div>
-              <AmplitudeEnvelope audioBuffer={currentBuffer} />
+              <div className="flex items-center justify-between mb-1"><h3 className="text-xs font-semibold text-white leading-tight">{t('analysis.envelope')}</h3><ParameterInfo {...parameterInfo.amplitudeEnvelope} /></div>
+              <AmplitudeEnvelope audioBuffer={currentBuffer} title={t('analysis.envelope')} />
             </div>
           </div>
 
-          {/* Audio Quality - FIXED clipping detection */}
           <div className="bg-gray-900/50 backdrop-blur rounded border border-gray-700 p-2 mb-3">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-semibold text-white">Audio Quality</h3>
-              <button 
-                onClick={async () => {
-                  console.log('CLIP button clicked - regenerating audio');
-                  await generateSound();
-                  // Force check after generation completes
-                  setTimeout(() => {
-                    const buffer = activeSlot === 'A' ? audioBuffer : audioBufferB;
-                    if (buffer) {
-                      const clipping = detectClipping(buffer, 0.95);
-                      setIsClipping(clipping);
-                      console.log('Clipping detected:', clipping);
-                    }
-                  }, 200);
-                }}
-                className={`flex items-center gap-1 rounded px-2 py-1 text-xs transition-all cursor-pointer hover:opacity-80 ${
-                  isClipping 
-                    ? 'bg-red-600 text-white animate-pulse shadow-lg' 
-                    : 'bg-green-700 text-white'
-                }`}
-              >
-                <div className={`w-2 h-2 rounded-full ${
-                  isClipping ? 'bg-white animate-pulse' : 'bg-green-300'
-                }`}></div>
-                <span className="font-bold">{isClipping ? 'CLIP!' : 'OK'}</span>
-              </button>
+              <h3 className="text-sm font-semibold text-white">{t('quality.title')}</h3>
+              <div className={`flex items-center gap-1 rounded px-2 py-1 text-xs transition-all ${isClipping ? 'bg-red-600 text-white animate-pulse' : 'bg-green-700 text-white'}`}>
+                <div className={`w-2 h-2 rounded-full ${isClipping ? 'bg-white animate-pulse' : 'bg-green-300'}`}></div>
+                <span className="font-bold">{isClipping ? t('quality.clip') : t('quality.ok')}</span>
+              </div>
             </div>
-          
-          {/* Rest stays the same */}
-          <div className="flex items-center gap-1 mb-2">
-            <span className="text-xs font-medium text-white w-8">Rate:</span>
-            <div className="flex gap-1 flex-1">
-              {[44100, 22050, 11025, 8000].map(rate => (
-                <button
-                  key={rate}
-                  onClick={() => setSampleRate(rate)}
-                  className={`px-1 py-1 rounded text-xs transition-colors flex-1 ${
-                    sampleRate === rate ? 'bg-orange-600 text-white' : 'bg-gray-700 text-gray-300'
-                  }`}
-                >
-                  {rate >= 1000 ? `${Math.round(rate/1000)}K` : `${rate}`}
-                </button>
-              ))}
+            <div className="flex items-center gap-1 mb-2">
+              <span className="text-xs font-medium text-white w-8">{t('quality.rate')}</span>
+              <div className="flex gap-1 flex-1">
+                {[44100, 22050, 11025, 8000].map(rate => (<button key={rate} onClick={() => setSampleRate(rate)} className={`px-1 py-1 rounded text-xs transition-colors flex-1 ${sampleRate === rate ? 'bg-orange-600 text-white' : 'bg-gray-700 text-gray-300'}`}>{rate >= 1000 ? `${Math.round(rate/1000)}K` : `${rate}`}</button>))}
+              </div>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-xs font-medium text-white w-8">{t('quality.bits')}</span>
+              <div className="flex gap-1 flex-1">
+                {[16, 8].map(bits => (<button key={bits} onClick={() => setBitDepth(bits)} className={`px-2 py-1 rounded text-xs transition-colors flex-1 ${bitDepth === bits ? 'bg-orange-600 text-white' : 'bg-gray-700 text-gray-300'}`}>{bits}bit</button>))}
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-1">
-            <span className="text-xs font-medium text-white w-8">Bits:</span>
-            <div className="flex gap-1 flex-1">
-              {[16, 8].map(bits => (
-                <button
-                  key={bits}
-                  onClick={() => setBitDepth(bits)}
-                  className={`px-2 py-1 rounded text-xs transition-colors flex-1 ${
-                    bitDepth === bits ? 'bg-orange-600 text-white' : 'bg-gray-700 text-gray-300'
-                  }`}
-                >
-                  {bits}bit
-                </button>
-              ))}
+          <div className="bg-gray-900/50 backdrop-blur rounded border border-gray-700 p-2">
+            <div className="flex items-center gap-2 mb-2 tabs-container">
+              <div className="flex flex-wrap bg-gray-800/50 p-1 rounded flex-1">
+                <button onClick={() => setActiveTab('basic')} className={`px-2 py-1 rounded transition-colors text-xs flex-1 ${activeTab === 'basic' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>{t('tabs.basic')}</button>
+                <button onClick={() => setActiveTab('envelope')} className={`px-2 py-1 rounded transition-colors text-xs flex-1 ${activeTab === 'envelope' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>{t('tabs.envelope')}</button>
+                <button onClick={() => setActiveTab('effects')} className={`px-2 py-1 rounded transition-colors text-xs flex-1 ${activeTab === 'effects' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>{t('tabs.effects')}</button>
+                <button onClick={() => setActiveTab('advanced')} className={`px-2 py-1 rounded transition-colors text-xs flex-1 ${activeTab === 'advanced' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>{t('tabs.advanced')}</button>
+              </div>
+              <button onClick={() => setShowNumericInputs(!showNumericInputs)} className={`px-2 py-1 rounded transition-colors text-xs ${showNumericInputs ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300'}`}>{showNumericInputs ? '123' : '━'}</button>
             </div>
+            {activeTab === 'basic' && (
+                <div className="space-y-2">
+                    <div className="bg-gray-800/50 rounded p-2">
+                        <div className="flex items-center gap-2 mb-2"><h4 className="text-sm font-semibold text-blue-300">{t('waveforms.title')}</h4><ParameterInfo {...parameterInfo.waveformType} /></div>
+                        <div className="grid grid-cols-4 gap-2">
+                            {['square', 'sawtooth', 'sine', 'noise'].map((wave, idx) => (
+                                <label key={wave} className="flex flex-col items-center gap-1 cursor-pointer">
+                                    <input type="radio" checked={currentParams.wave_type === idx} onChange={() => updateParam('wave_type', idx)} className="w-3 h-3"/>
+                                    <span className="text-xs text-white">{t(`waveforms.${wave}`)}</span>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                        <ParamSlider label={t('paramInfo.p_base_freq.label')} value={currentParams.p_base_freq} onChange={(v) => updateParam('p_base_freq', v)} min={0} max={2} info={parameterInfo.p_base_freq}/>
+                        <ParamSlider label={t('paramInfo.p_freq_ramp.label')} value={currentParams.p_freq_ramp} onChange={(v) => updateParam('p_freq_ramp', v)} min={-1} max={1} info={parameterInfo.p_freq_ramp}/>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                        <ParamSlider label={t('paramInfo.p_freq_limit.label')} value={currentParams.p_freq_limit} onChange={(v) => updateParam('p_freq_limit', v)} min={0} max={1} info={parameterInfo.p_freq_limit}/>
+                        <ParamSlider label={t('paramInfo.p_repeat_speed.label')} value={currentParams.p_repeat_speed} onChange={(v) => updateParam('p_repeat_speed', v)} min={0} max={1} info={parameterInfo.p_repeat_speed}/>
+                    </div>
+                </div>
+            )}
+            {activeTab === 'envelope' && (
+                <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                        <ParamSlider label={t('paramInfo.p_env_attack.label')} value={currentParams.p_env_attack} onChange={(v) => updateParam('p_env_attack', v)} info={parameterInfo.p_env_attack} />
+                        <ParamSlider label={t('paramInfo.p_env_sustain.label')} value={currentParams.p_env_sustain} onChange={(v) => updateParam('p_env_sustain', v)} info={parameterInfo.p_env_sustain} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                        <ParamSlider label={t('paramInfo.p_env_decay.label')} value={currentParams.p_env_decay} onChange={(v) => updateParam('p_env_decay', v)} info={parameterInfo.p_env_decay} />
+                        <ParamSlider label={t('paramInfo.p_env_punch.label')} value={currentParams.p_env_punch} onChange={(v) => updateParam('p_env_punch', v)} info={parameterInfo.p_env_punch} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                        <ParamSlider label={t('paramInfo.p_vib_speed.label')} value={currentParams.p_vib_speed} onChange={(v) => updateParam('p_vib_speed', v)} info={parameterInfo.p_vib_speed} />
+                        <ParamSlider label={t('paramInfo.p_vib_strength.label')} value={currentParams.p_vib_strength} onChange={(v) => updateParam('p_vib_strength', v)} info={parameterInfo.p_vib_strength} />
+                    </div>
+                </div>
+            )}
+            {activeTab === 'effects' && (
+                <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                        <ParamSlider label={t('paramInfo.distortion.label')} value={currentParams.distortion} onChange={(v) => updateParam('distortion', v)} info={parameterInfo.distortion} />
+                        <ParamSlider label={t('paramInfo.bit_crush.label')} value={currentParams.bit_crush} onChange={(v) => updateParam('bit_crush', v)} info={parameterInfo.bit_crush} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                        <ParamSlider label={t('paramInfo.p_lpf_freq.label')} value={currentParams.p_lpf_freq} onChange={(v) => updateParam('p_lpf_freq', v)} info={parameterInfo.p_lpf_freq} />
+                        <ParamSlider label={t('paramInfo.p_hpf_freq.label')} value={currentParams.p_hpf_freq} onChange={(v) => updateParam('p_hpf_freq', v)} info={parameterInfo.p_hpf_freq} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                        <ParamSlider label={t('paramInfo.chorus_rate.label')} value={currentParams.chorus_rate} onChange={(v) => updateParam('chorus_rate', v)} info={parameterInfo.chorus_rate} />
+                        <ParamSlider label={t('paramInfo.delay_time.label')} value={currentParams.delay_time} onChange={(v) => updateParam('delay_time', v)} info={parameterInfo.delay_time} />
+                    </div>
+                </div>
+            )}
+            {activeTab === 'advanced' && (
+                <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                        <ParamSlider label={t('paramInfo.fm_freq.label')} value={currentParams.fm_freq} onChange={(v) => updateParam('fm_freq', v)} info={parameterInfo.fm_freq} />
+                        <ParamSlider label={t('paramInfo.fm_depth.label')} value={currentParams.fm_depth} onChange={(v) => updateParam('fm_depth', v)} info={parameterInfo.fm_depth} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                        <ParamSlider label={t('paramInfo.ring_mod_freq.label')} value={currentParams.ring_mod_freq} onChange={(v) => updateParam('ring_mod_freq', v)} info={parameterInfo.ring_mod_freq} />
+                        <ParamSlider label={t('paramInfo.ring_mod_depth.label')} value={currentParams.ring_mod_depth} onChange={(v) => updateParam('ring_mod_depth', v)} info={parameterInfo.ring_mod_depth} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                        <ParamSlider label={t('paramInfo.delay_feedback.label')} value={currentParams.delay_feedback} onChange={(v) => updateParam('delay_feedback', v)} info={parameterInfo.delay_feedback} />
+                        <ParamSlider label={t('paramInfo.sound_vol.label')} value={currentParams.sound_vol} onChange={(v) => updateParam('sound_vol', v)} info={parameterInfo.sound_vol} />
+                    </div>
+                </div>
+            )}
           </div>
         </div>
 
-        {/* Parameter Controls */}
-        <div className="bg-gray-900/50 backdrop-blur rounded border border-gray-700 p-2">
-          {/* Tabs - FORCE horizontal with CSS class */}
-          <div className="flex items-center gap-2 mb-2 tabs-container">
-            <div className="flex bg-gray-800/50 p-1 rounded flex-1">
-              <button
-                onClick={() => setActiveTab('basic')}
-                className={`px-2 py-1 rounded transition-colors text-xs flex-1 ${
-                  activeTab === 'basic' ? 'bg-blue-600 text-white' : 'text-gray-300'
-                }`}
-              >
-                Basic
-              </button>
-              <button
-                onClick={() => setActiveTab('envelope')}
-                className={`px-2 py-1 rounded transition-colors text-xs flex-1 ${
-                  activeTab === 'envelope' ? 'bg-blue-600 text-white' : 'text-gray-300'
-                }`}
-              >
-                Env
-              </button>
-              <button
-                onClick={() => setActiveTab('effects')}
-                className={`px-2 py-1 rounded transition-colors text-xs flex-1 ${
-                  activeTab === 'effects' ? 'bg-blue-600 text-white' : 'text-gray-300'
-                }`}
-              >
-                FX
-              </button>
-              <button
-                onClick={() => setActiveTab('advanced')}
-                className={`px-2 py-1 rounded transition-colors text-xs flex-1 ${
-                  activeTab === 'advanced' ? 'bg-blue-600 text-white' : 'text-gray-300'
-                }`}
-              >
-                Adv
-              </button>
-            </div>
-            <button
-              onClick={() => setShowNumericInputs(!showNumericInputs)}
-              className={`px-2 py-1 rounded transition-colors text-xs ${
-                showNumericInputs ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300'
-              }`}
-            >
-              {showNumericInputs ? '123' : '━'}
-            </button>
-          </div>
-
-          {/* Parameter content - 2 sliders per row */}
-          {activeTab === 'basic' && (
-            <div className="space-y-2">
-              <div className="bg-gray-800/50 rounded p-2">
-                <div className="flex items-center gap-2 mb-2">
-                  <h4 className="text-sm font-semibold text-blue-300">Waveform</h4>
-                  <ParameterInfo {...parameterInfo.waveformType} />
-                </div>
-                <div className="grid grid-cols-4 gap-2">
-                  {waveTypes.map((wave, idx) => (
-                    <label key={wave} className="flex flex-col items-center gap-1 cursor-pointer">
-                      <input
-                        type="radio"
-                        checked={currentParams.wave_type === idx}
-                        onChange={() => updateParam('wave_type', idx)}
-                        className="w-3 h-3"
-                      />
-                      <span className="text-xs text-white">{wave}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                {showNumericInputs ? (
-                  <>
-                    <NumericInput
-                      label="Base Freq"
-                      value={currentParams.p_base_freq}
-                      onChange={(v) => updateParam('p_base_freq', v)}
-                      min={0} max={2}
-                    />
-                    <NumericInput
-                      label="Freq Ramp"
-                      value={currentParams.p_freq_ramp}
-                      onChange={(v) => updateParam('p_freq_ramp', v)}
-                      min={-1} max={1}
-                    />
-                  </>
-                ) : (
-                  <>
-                    <ParamSlider
-                      label="Base Freq"
-                      value={currentParams.p_base_freq}
-                      onChange={(v) => updateParam('p_base_freq', v)}
-                      min={0} max={2}
-                      info={parameterInfo.p_base_freq}
-                    />
-                    <ParamSlider
-                      label="Freq Ramp"
-                      value={currentParams.p_freq_ramp}
-                      onChange={(v) => updateParam('p_freq_ramp', v)}
-                      min={-1} max={1}
-                      info={parameterInfo.p_freq_ramp}
-                    />
-                  </>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                {showNumericInputs ? (
-                  <>
-                    <NumericInput
-                      label="Freq Floor"
-                      value={currentParams.p_freq_limit}
-                      onChange={(v) => updateParam('p_freq_limit', v)}
-                      min={0} max={1}
-                    />
-                    <NumericInput
-                      label="Retrigger"
-                      value={currentParams.p_repeat_speed}
-                      onChange={(v) => updateParam('p_repeat_speed', v)}
-                      min={0} max={1}
-                    />
-                  </>
-                ) : (
-                  <>
-                    <ParamSlider
-                      label="Freq Floor"
-                      value={currentParams.p_freq_limit}
-                      onChange={(v) => updateParam('p_freq_limit', v)}
-                      min={0} max={1}
-                      info={parameterInfo.p_freq_limit}
-                    />
-                    <ParamSlider
-                      label="Retrigger"
-                      value={currentParams.p_repeat_speed}
-                      onChange={(v) => updateParam('p_repeat_speed', v)}
-                      min={0} max={1}
-                      info={parameterInfo.p_repeat_speed}
-                    />
-                  </>
-                )}
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'envelope' && (
-            <div className="space-y-2">
-              <div className="grid grid-cols-2 gap-2">
-                {showNumericInputs ? (
-                  <>
-                    <NumericInput label="Attack" value={currentParams.p_env_attack} onChange={(v) => updateParam('p_env_attack', v)} />
-                    <NumericInput label="Sustain" value={currentParams.p_env_sustain} onChange={(v) => updateParam('p_env_sustain', v)} />
-                  </>
-                ) : (
-                  <>
-                    <ParamSlider label="Attack" value={currentParams.p_env_attack} onChange={(v) => updateParam('p_env_attack', v)} info={parameterInfo.p_env_attack} />
-                    <ParamSlider label="Sustain" value={currentParams.p_env_sustain} onChange={(v) => updateParam('p_env_sustain', v)} info={parameterInfo.p_env_sustain} />
-                  </>
-                )}
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {showNumericInputs ? (
-                  <>
-                    <NumericInput label="Decay" value={currentParams.p_env_decay} onChange={(v) => updateParam('p_env_decay', v)} />
-                    <NumericInput label="Punch" value={currentParams.p_env_punch} onChange={(v) => updateParam('p_env_punch', v)} />
-                  </>
-                ) : (
-                  <>
-                    <ParamSlider label="Decay" value={currentParams.p_env_decay} onChange={(v) => updateParam('p_env_decay', v)} info={parameterInfo.p_env_decay} />
-                    <ParamSlider label="Punch" value={currentParams.p_env_punch} onChange={(v) => updateParam('p_env_punch', v)} info={parameterInfo.p_env_punch} />
-                  </>
-                )}
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {showNumericInputs ? (
-                  <>
-                    <NumericInput label="Vib Speed" value={currentParams.p_vib_speed} onChange={(v) => updateParam('p_vib_speed', v)} />
-                    <NumericInput label="Vib Depth" value={currentParams.p_vib_strength} onChange={(v) => updateParam('p_vib_strength', v)} />
-                  </>
-                ) : (
-                  <>
-                    <ParamSlider label="Vib Speed" value={currentParams.p_vib_speed} onChange={(v) => updateParam('p_vib_speed', v)} info={parameterInfo.p_vib_speed} />
-                    <ParamSlider label="Vib Depth" value={currentParams.p_vib_strength} onChange={(v) => updateParam('p_vib_strength', v)} info={parameterInfo.p_vib_strength} />
-                  </>
-                )}
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'effects' && (
-            <div className="space-y-2">
-              <div className="grid grid-cols-2 gap-2">
-                {showNumericInputs ? (
-                  <>
-                    <NumericInput label="Distortion" value={currentParams.distortion} onChange={(v) => updateParam('distortion', v)} />
-                    <NumericInput label="Bit Crush" value={currentParams.bit_crush} onChange={(v) => updateParam('bit_crush', v)} />
-                  </>
-                ) : (
-                  <>
-                    <ParamSlider label="Distortion" value={currentParams.distortion} onChange={(v) => updateParam('distortion', v)} info={parameterInfo.distortion} />
-                    <ParamSlider label="Bit Crush" value={currentParams.bit_crush} onChange={(v) => updateParam('bit_crush', v)} info={parameterInfo.bit_crush} />
-                  </>
-                )}
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {showNumericInputs ? (
-                  <>
-                    <NumericInput label="Low Pass" value={currentParams.p_lpf_freq} onChange={(v) => updateParam('p_lpf_freq', v)} />
-                    <NumericInput label="High Pass" value={currentParams.p_hpf_freq} onChange={(v) => updateParam('p_hpf_freq', v)} />
-                  </>
-                ) : (
-                  <>
-                    <ParamSlider label="Low Pass" value={currentParams.p_lpf_freq} onChange={(v) => updateParam('p_lpf_freq', v)} info={parameterInfo.p_lpf_freq} />
-                    <ParamSlider label="High Pass" value={currentParams.p_hpf_freq} onChange={(v) => updateParam('p_hpf_freq', v)} info={parameterInfo.p_hpf_freq} />
-                  </>
-                )}
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {showNumericInputs ? (
-                  <>
-                    <NumericInput label="Chorus" value={currentParams.chorus_rate} onChange={(v) => updateParam('chorus_rate', v)} />
-                    <NumericInput label="Delay" value={currentParams.delay_time} onChange={(v) => updateParam('delay_time', v)} />
-                  </>
-                ) : (
-                  <>
-                    <ParamSlider label="Chorus" value={currentParams.chorus_rate} onChange={(v) => updateParam('chorus_rate', v)} info={parameterInfo.chorus_rate} />
-                    <ParamSlider label="Delay" value={currentParams.delay_time} onChange={(v) => updateParam('delay_time', v)} info={parameterInfo.delay_time} />
-                  </>
-                )}
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'advanced' && (
-            <div className="space-y-2">
-              <div className="grid grid-cols-2 gap-2">
-                {showNumericInputs ? (
-                  <>
-                    <NumericInput label="FM Freq" value={currentParams.fm_freq} onChange={(v) => updateParam('fm_freq', v)} />
-                    <NumericInput label="FM Depth" value={currentParams.fm_depth} onChange={(v) => updateParam('fm_depth', v)} />
-                  </>
-                ) : (
-                  <>
-                    <ParamSlider label="FM Freq" value={currentParams.fm_freq} onChange={(v) => updateParam('fm_freq', v)} info={parameterInfo.fm_freq} />
-                    <ParamSlider label="FM Depth" value={currentParams.fm_depth} onChange={(v) => updateParam('fm_depth', v)} info={parameterInfo.fm_depth} />
-                  </>
-                )}
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {showNumericInputs ? (
-                  <>
-                    <NumericInput label="Ring Freq" value={currentParams.ring_mod_freq} onChange={(v) => updateParam('ring_mod_freq', v)} />
-                    <NumericInput label="Ring Depth" value={currentParams.ring_mod_depth} onChange={(v) => updateParam('ring_mod_depth', v)} />
-                  </>
-                ) : (
-                  <>
-                    <ParamSlider label="Ring Freq" value={currentParams.ring_mod_freq} onChange={(v) => updateParam('ring_mod_freq', v)} info={parameterInfo.ring_mod_freq} />
-                    <ParamSlider label="Ring Depth" value={currentParams.ring_mod_depth} onChange={(v) => updateParam('ring_mod_depth', v)} info={parameterInfo.ring_mod_depth} />
-                  </>
-                )}
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {showNumericInputs ? (
-                  <>
-                    <NumericInput label="Feedback" value={currentParams.delay_feedback} onChange={(v) => updateParam('delay_feedback', v)} />
-                    <NumericInput label="Volume" value={currentParams.sound_vol} onChange={(v) => updateParam('sound_vol', v)} />
-                  </>
-                ) : (
-                  <>
-                    <ParamSlider label="Feedback" value={currentParams.delay_feedback} onChange={(v) => updateParam('delay_feedback', v)} info={parameterInfo.delay_feedback} />
-                    <ParamSlider label="Volume" value={currentParams.sound_vol} onChange={(v) => updateParam('sound_vol', v)} info={parameterInfo.sound_vol} />
-                  </>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-        {/* ------------------- DESKTOP SECTION STARTS HERE ------------------- */}
-        {/* Single Desktop UI Wrapper */}
+        {/* Desktop Interface */}
         <div className="hidden lg:block">
+          <div className="text-center mb-8 relative">
 
-          {/* Desktop Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-2">
-              CrispFXR
-            </h1>
-            <p className="text-gray-400 text-lg">Advanced 8-bit Sound Synthesizer</p>
+            {/* --- Corrected Language Dropdown Placement --- */}
+            <div className="absolute top-0 right-0 z-40" ref={dropdownWrapperRef}>
+              {/* Trigger Button */}
+              <button 
+                onClick={handleLangDropdownToggle}
+                className="flex items-center gap-2 bg-gray-800/50 p-1 pl-2 rounded-lg text-xs font-semibold text-white hover:bg-gray-700 transition-colors"
+              >
+                <span>{currentLang.flag}</span>
+                <span>{currentLang.name.split(' ')[0]}</span>
+                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${langDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
 
-            {/* Desktop Controls */}
+              {/* Dropdown Menu */}
+              {langDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-gray-800 shadow-2xl ring-1 ring-black ring-opacity-20 focus:outline-none animate-fade-in-down">
+                  <div className="py-1">
+                    {availableLanguages.map((lang) => (
+                      <button
+                        key={lang.code}
+                        onClick={() => {
+                          i18n.changeLanguage(lang.code);
+                          setLangDropdownOpen(false);
+                        }}
+                        className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-gray-200 hover:bg-blue-600 hover:text-white transition-colors"
+                      >
+                        <span className="text-lg">{lang.flag}</span>
+                        <span>{lang.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-2">{t('appTitle')}</h1>
+            
+            
+
+            <p className="text-gray-400 text-lg">{t('appSubtitle')}</p>
             <div className="flex justify-center items-center gap-6 mt-6 mb-4">
               <div className="flex items-center gap-2">
                 <Headphones className="w-5 h-5 text-gray-400" />
                 <input type="range" min="0" max="1" step="0.1" value={masterVolume} onChange={(e) => setMasterVolume(parseFloat(e.target.value))} className="w-20 slider" />
                 <span className="text-xs text-white bg-gray-800 px-2 py-1 rounded w-12 text-center">{Math.round(masterVolume * 100)}%</span>
               </div>
-
               <div className="flex items-center gap-2">
-                <button onClick={() => setActiveSlot('A')} className={`px-4 py-2 rounded-lg transition-colors ${activeSlot === 'A' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'}`}>Slot A</button>
-                <button onClick={copySlot} className="px-3 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg transition-colors"><Copy className="w-4 h-4" /></button>
-                <button onClick={morphSlots} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg transition-colors"><Shuffle className="w-4 h-4" /></button>
-                <button onClick={() => setActiveSlot('B')} className={`px-4 py-2 rounded-lg transition-colors ${activeSlot === 'B' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'}`}>Slot B</button>
+                <button onClick={() => setActiveSlot('A')} className={`px-4 py-2 rounded-lg transition-colors ${activeSlot === 'A' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'}`}>{t('controls.slotA')}</button>
+                <button onClick={copySlot} className="px-3 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg transition-colors" title={t('controls.copy')}><Copy className="w-4 h-4" /></button>
+                <button onClick={morphSlots} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg transition-colors" title={t('controls.mutate')}><Shuffle className="w-4 h-4" /></button>
+                <button onClick={() => setActiveSlot('B')} className={`px-4 py-2 rounded-lg transition-colors ${activeSlot === 'B' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'}`}>{t('controls.slotB')}</button>
               </div>
-
               <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-400">Morph:</span>
+                <span className="text-xs text-gray-400">{t('controls.morph')}</span>
                 <input type="range" min="0" max="1" step="0.01" value={morphAmount} onChange={(e) => setMorphAmount(parseFloat(e.target.value))} className="w-20 slider" />
                 <span className="text-xs text-white bg-gray-800 px-2 py-1 rounded w-12 text-center">{Math.round(morphAmount * 100)}%</span>
               </div>
             </div>
-
             <div className="flex justify-center gap-4 mt-4">
-              <button onClick={() => playSound('A')} disabled={!audioBuffer} className="px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-700 rounded-lg transition-colors flex items-center gap-2 font-semibold">
-                <Play className="w-5 h-5" />Play A
-              </button>
-              <button onClick={() => playSound('B')} disabled={!audioBufferB} className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-700 rounded-lg transition-colors flex items-center gap-2 font-semibold">
-                <Play className="w-5 h-5" />Play B
-              </button>
-              <button onClick={toggleLoop} className={`px-6 py-3 rounded-lg transition-colors flex items-center gap-2 font-semibold ${isLooping ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-600 hover:bg-gray-700'}`}>
-                {isLooping ? <PauseCircle className="w-5 h-5" /> : <Repeat className="w-5 h-5" />}{isLooping ? 'Stop Loop' : 'Loop'}
-              </button>
-              <button onClick={mutateParams} className="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors flex items-center gap-2 font-semibold">
-                <Shuffle className="w-5 h-5" />Mutate
-              </button>
+              <button onClick={() => playSound('A')} disabled={!audioBuffer} className="px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-700 rounded-lg transition-colors flex items-center gap-2 font-semibold"><Play className="w-5 h-5" />{t('controls.playA')}</button>
+              <button onClick={() => playSound('B')} disabled={!audioBufferB} className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-700 rounded-lg transition-colors flex items-center gap-2 font-semibold"><Play className="w-5 h-5" />{t('controls.playB')}</button>
+              <button onClick={toggleLoop} className={`px-6 py-3 rounded-lg transition-colors flex items-center gap-2 font-semibold ${isLooping ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-600 hover:bg-gray-700'}`}>{isLooping ? <PauseCircle className="w-5 h-5" /> : <Repeat className="w-5 h-5" />}{isLooping ? t('controls.stopLoop') : t('controls.loop')}</button>
+              <button onClick={mutateParams} className="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors flex items-center gap-2 font-semibold"><Shuffle className="w-5 h-5" />{t('controls.mutate')}</button>
             </div>
           </div>
-
-          {/* Presets - Desktop */}
           <div className="bg-gray-900/50 backdrop-blur rounded-xl border border-gray-700 p-4 lg:p-6 mb-6 lg:mb-8">
-            <h3 className="text-lg lg:text-xl font-semibold mb-3 lg:mb-4 flex items-center gap-2">
-              <Zap className="w-5 lg:w-6 h-5 lg:h-6" />
-              Sound Presets
-            </h3>
+            <h3 className="text-lg lg:text-xl font-semibold mb-3 lg:mb-4 flex items-center gap-2"><Zap className="w-5 lg:w-6 h-5 lg:h-6" />{t('presets.title')}</h3>
             <div className="grid grid-cols-8 gap-3">
               {presets.map((preset) => (
-                <button
-                  key={preset.name}
-                  onClick={() => loadPreset(preset.name)}
-                  className={`p-4 ${preset.color} hover:opacity-80 rounded-lg transition-all transform hover:scale-105 text-sm font-semibold shadow-lg flex flex-col items-center gap-0`}
-                >
+                <button key={preset.name} onClick={() => loadPreset(preset.name)} className={`p-4 ${preset.color} hover:opacity-80 rounded-lg transition-all transform hover:scale-105 text-sm font-semibold shadow-lg flex flex-col items-center gap-0`}>
                   <span className="text-lg">{preset.emoji}</span>
                   <span className="text-sm">{preset.label.split(' ')[0]}</span>
                 </button>
               ))}
             </div>
           </div>
-
-          {/* Visualization Section - Desktop */}
           <div className="mb-6 lg:mb-8">
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6 mb-4">
-              <div className="bg-gray-900/50 backdrop-blur rounded-xl border border-gray-700 p-4 lg:p-6">
-                <WaveformDisplay
-                  audioBuffer={audioBuffer}
-                  isPlaying={isPlaying && activeSlot === 'A'}
-                  title="Waveform A"
-                />
-              </div>
-              <div className="bg-gray-900/50 backdrop-blur rounded-xl border border-gray-700 p-4 lg:p-6">
-                <WaveformDisplay
-                  audioBuffer={audioBufferB}
-                  isPlaying={isPlaying && activeSlot === 'B'}
-                  title="Waveform B"
-                />
-              </div>
+              <div className="bg-gray-900/50 backdrop-blur rounded-xl border border-gray-700 p-4 lg:p-6"><WaveformDisplay audioBuffer={audioBuffer} isPlaying={isPlaying && activeSlot === 'A'} title={t('analysis.waveformA')}/></div>
+              <div className="bg-gray-900/50 backdrop-blur rounded-xl border border-gray-700 p-4 lg:p-6"><WaveformDisplay audioBuffer={audioBufferB} isPlaying={isPlaying && activeSlot === 'B'} title={t('analysis.waveformB')}/></div>
             </div>
-
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
-              <div className="bg-gray-900/50 backdrop-blur rounded-xl border border-gray-700 p-4 lg:p-6">
-                <SpectrumAnalyzer audioBuffer={currentBuffer} />
-              </div>
-              <div className="bg-gray-900/50 backdrop-blur rounded-xl border border-gray-700 p-4 lg:p-6">
-                <AmplitudeMeter audioBuffer={currentBuffer} />
-              </div>
-              <div className="bg-gray-900/50 backdrop-blur rounded-xl border border-gray-700 p-4 lg:p-6">
-                <AmplitudeEnvelope audioBuffer={currentBuffer} />
-              </div>
+              <div className="bg-gray-900/50 backdrop-blur rounded-xl border border-gray-700 p-4 lg:p-6"><SpectrumAnalyzer audioBuffer={currentBuffer} title={t('analysis.spectrum')} /></div>
+              <div className="bg-gray-900/50 backdrop-blur rounded-xl border border-gray-700 p-4 lg:p-6"><AmplitudeMeter audioBuffer={currentBuffer} title={t('analysis.level')} /></div>
+              <div className="bg-gray-900/50 backdrop-blur rounded-xl border border-gray-700 p-4 lg:p-6"><AmplitudeEnvelope audioBuffer={currentBuffer} title={t('analysis.envelope')} /></div>
             </div>
           </div>
-
-          {/* Audio Quality & Export Controls - Desktop */}
           <div className="bg-gray-900/50 backdrop-blur rounded-xl border border-gray-700 p-4 lg:p-6 mb-6 lg:mb-8">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-lg font-semibold text-white">Audio Quality</h3>
-                  <button
-                    className={`flex items-center gap-2 rounded px-3 py-1 text-sm ${
-                      isClipping ? 'bg-red-600 text-white' : 'bg-gray-700 text-gray-300'
-                    }`}
-                  >
-                    <div className={`w-3 h-3 rounded ${isClipping ? 'bg-white' : 'bg-gray-500'}`}></div>
-                    Clip
-                  </button>
+                  <h3 className="text-lg font-semibold text-white">{t('quality.title')}</h3>
+                  <div className={`flex items-center gap-2 rounded px-3 py-1 text-sm ${isClipping ? 'bg-red-600 text-white' : 'bg-gray-700 text-gray-300'}`}>
+                    <div className={`w-3 h-3 rounded ${isClipping ? 'bg-white' : 'bg-gray-500'}`}></div>{isClipping ? t('quality.clip') : t('quality.ok')}
+                  </div>
                 </div>
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-white w-16">Rate:</span>
-                    <div className="flex gap-1 flex-1">
-                      {[44100, 22050, 11025, 8000].map(rate => (
-                        <button
-                          key={rate}
-                          onClick={() => setSampleRate(rate)}
-                          className={`px-2 py-1 rounded text-sm transition-colors flex-1 ${
-                            sampleRate === rate ? 'bg-orange-600 text-white' : 'bg-gray-700 text-gray-300'
-                          }`}
-                        >
-                          {rate >= 1000 ? `${Math.round(rate/1000)}K` : `${rate}`}
-                        </button>
-                      ))}
-                    </div>
+                  <div className="flex items-center gap-2"><span className="text-sm font-medium text-white w-16">{t('quality.rate')}</span>
+                    <div className="flex gap-1 flex-1">{[44100, 22050, 11025, 8000].map(rate => (<button key={rate} onClick={() => setSampleRate(rate)} className={`px-2 py-1 rounded text-sm transition-colors flex-1 ${sampleRate === rate ? 'bg-orange-600 text-white' : 'bg-gray-700 text-gray-300'}`}>{rate >= 1000 ? `${Math.round(rate/1000)}K` : `${rate}`}</button>))}</div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-white w-16">Bits:</span>
-                    <div className="flex gap-1 flex-1">
-                      {[16, 8].map(bits => (
-                        <button
-                          key={bits}
-                          onClick={() => setBitDepth(bits)}
-                          className={`px-3 py-1 rounded text-sm transition-colors flex-1 ${
-                            bitDepth === bits ? 'bg-orange-600 text-white' : 'bg-gray-700 text-gray-300'
-                          }`}
-                        >
-                          {bits} bit
-                        </button>
-                      ))}
-                    </div>
+                  <div className="flex items-center gap-2"><span className="text-sm font-medium text-white w-16">{t('quality.bits')}</span>
+                    <div className="flex gap-1 flex-1">{[16, 8].map(bits => (<button key={bits} onClick={() => setBitDepth(bits)} className={`px-3 py-1 rounded text-sm transition-colors flex-1 ${bitDepth === bits ? 'bg-orange-600 text-white' : 'bg-gray-700 text-gray-300'}`}>{bits} bit</button>))}</div>
                   </div>
                 </div>
               </div>
-
-              {/* Export Format and Import in one row */}
               <div>
-                <h3 className="text-lg font-semibold mb-2 text-white">Export & Import</h3>
+                <h3 className="text-lg font-semibold mb-2 text-white">{t('quality.title')}</h3>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <select
-                      value={exportFormat}
-                      onChange={(e) => setExportFormat(e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white"
-                    >
-                      <option value="wav">WAV Audio</option>
-                      <option value="json">JSON Preset</option>
+                    <select value={exportFormat} onChange={(e) => setExportFormat(e.target.value)} className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white">
+                      <option value="wav">{t('quality.exportFormats.wav')}</option>
+                      <option value="json">{t('quality.exportFormats.json')}</option>
                     </select>
                   </div>
-                  <div>
-                    <button onClick={exportSound} disabled={!currentBuffer} className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 rounded transition-colors flex items-center gap-2 font-semibold justify-center">
-                      <Download className="w-4 h-4" />Export {activeSlot}
-                    </button>
-                  </div>
-                  {!Capacitor.isNativePlatform() && (
-                    <div className="mt-3">
-                      <input type="file" accept=".json" onChange={importPreset} className="hidden" id="preset-import-desktop" />
-                      <label htmlFor="preset-import-desktop" className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded transition-colors flex items-center gap-2 font-semibold cursor-pointer justify-center">
-                        <Download className="w-4 h-4 rotate-180" />Import Preset
-                      </label>
-                    </div>
-                  )}
+                  <div><button onClick={exportSound} disabled={!currentBuffer} className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 rounded transition-colors flex items-center gap-2 font-semibold justify-center"><Download className="w-4 h-4" />{t('controls.export', { slot: activeSlot })}</button></div>
+                  {!Capacitor.isNativePlatform() && (<div className="col-span-2"><input type="file" accept=".json" onChange={importPreset} className="hidden" id="preset-import-desktop" /><label htmlFor="preset-import-desktop" className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded transition-colors flex items-center gap-2 font-semibold cursor-pointer justify-center"><Download className="w-4 h-4 rotate-180" />{t('controls.import')}</label></div>)}
                 </div>
-
               </div>
             </div>
           </div>
-
-          {/* Parameter Controls - Desktop */}
           <div className="bg-gray-900/50 backdrop-blur rounded-xl border border-gray-700 p-4 lg:p-6">
             <div className="flex justify-between items-center mb-4 lg:mb-6">
               <div className="flex space-x-1 bg-gray-800/50 p-1 rounded-lg overflow-x-auto flex-1 mr-2">
-                {[
-                  { id: 'basic', label: 'Basic', icon: Settings },
-                  { id: 'envelope', label: 'Envelope', icon: Activity },
-                  { id: 'effects', label: 'Effects', icon: Zap },
-                  { id: 'advanced', label: 'Advanced', icon: Volume2 }
-                ].map((tab) => {
-                  const Icon = tab.icon;
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`px-3 py-2 rounded transition-colors flex items-center gap-2 whitespace-nowrap flex-1 lg:flex-none ${
-                        activeTab === tab.id
-                          ? 'bg-blue-600 text-white shadow-lg'
-                          : 'text-gray-300 hover:text-white hover:bg-gray-700'
-                      }`}
-                    >
-                      <Icon className="w-4 h-4" />
-                      <span className="text-sm">{tab.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="flex items-center">
-                <button
-                  onClick={() => setShowNumericInputs(!showNumericInputs)}
-                  className={`px-2 py-2 rounded transition-colors text-xs ${
-                    showNumericInputs ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300'
-                  }`}
-                >
-                  {showNumericInputs ? '123' : '━'}
-                </button>
+                {[{ id: 'basic', label: t('tabs.basic'), icon: Settings }, { id: 'envelope', label: t('tabs.envelope'), icon: Activity }, { id: 'effects', label: t('tabs.effects'), icon: Zap }, { id: 'advanced', label: t('tabs.advanced'), icon: Volume2 }].map((tab) => { const Icon = tab.icon; return (<button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`px-3 py-2 rounded transition-colors flex items-center gap-2 whitespace-nowrap flex-1 lg:flex-none ${activeTab === tab.id ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-300 hover:text-white hover:bg-gray-700'}`}><Icon className="w-4 h-4" /><span className="text-sm">{tab.label}</span></button>); })}
               </div>
             </div>
-
-            {/* Desktop Parameter Panels */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
               {activeTab === 'basic' && (
                 <>
                   <div className="bg-gray-800/50 rounded-lg p-4 col-span-full">
                     <div className="flex items-center gap-2 mb-3">
-                      <h4 className="font-semibold text-blue-300">Waveform Type</h4>
+                      <h4 className="font-semibold text-blue-300">{t('waveforms.title')}</h4>
                       <ParameterInfo {...parameterInfo.waveformType} />
                     </div>
                     <div className="flex flex-wrap gap-4 mb-4">
-                      {waveTypes.map((wave, idx) => (
+                      {['square', 'sawtooth', 'sine', 'noise'].map((wave, idx) => (
                         <label key={wave} className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="radio"
-                            checked={currentParams.wave_type === idx}
-                            onChange={() => updateParam('wave_type', idx)}
-                            className="text-blue-600"
-                          />
-                          <span className="text-sm text-white">{wave}</span>
+                          <input type="radio" checked={currentParams.wave_type === idx} onChange={() => updateParam('wave_type', idx)} className="text-blue-600"/>
+                          <span className="text-sm text-white">{t(`waveforms.${wave}`)}</span>
                         </label>
                       ))}
                     </div>
@@ -3252,19 +2774,14 @@ export default function CompleteCrispFXR() {
                     {currentParams.wave_type === NOISE && (
                       <>
                         <div className="flex items-center gap-2 mb-3">
-                          <h4 className="font-semibold text-purple-400">Noise Type</h4>
+                          <h4 className="font-semibold text-purple-400">{t('noiseTypes.title')}</h4>
                           <ParameterInfo {...parameterInfo.noiseType} />
                         </div>
                         <div className="flex gap-4">
-                          {noiseTypes.map((noise, idx) => (
+                          {['white', 'pink', 'brown'].map((noise, idx) => (
                             <label key={noise} className="flex items-center gap-2 cursor-pointer text-sm">
-                              <input
-                                type="radio"
-                                checked={currentParams.noise_type === idx}
-                                onChange={() => updateParam('noise_type', idx)}
-                                className="text-purple-600"
-                              />
-                              <span className="text-white">{noise}</span>
+                              <input type="radio" checked={currentParams.noise_type === idx} onChange={() => updateParam('noise_type', idx)} className="text-purple-600"/>
+                              <span className="text-white">{t(`noiseTypes.${noise}`)}</span>
                             </label>
                           ))}
                         </div>
@@ -3274,74 +2791,17 @@ export default function CompleteCrispFXR() {
 
                   {showNumericInputs ? (
                     <>
-                      <NumericInput
-                        label="Base Frequency"
-                        value={currentParams.p_base_freq}
-                        onChange={(v) => updateParam('p_base_freq', v)}
-                        min={0} max={2}
-                      />
-                      <NumericInput
-                        label="Frequency Ramp"
-                        value={currentParams.p_freq_ramp}
-                        onChange={(v) => updateParam('p_freq_ramp', v)}
-                        min={-1} max={1}
-                      />
-                      <NumericInput
-                        label="Frequency Floor"
-                        value={currentParams.p_freq_limit}
-                        onChange={(v) => updateParam('p_freq_limit', v)}
-                        min={0} max={1}
-                      />
-                      <NumericInput
-                        label="Delta Slide"
-                        value={currentParams.p_freq_dramp}
-                        onChange={(v) => updateParam('p_freq_dramp', v)}
-                        min={-1} max={1}
-                      />
-                      <NumericInput
-                        label="Retrigger Rate"
-                        value={currentParams.p_repeat_speed}
-                        onChange={(v) => updateParam('p_repeat_speed', v)}
-                        min={0} max={1}
-                      />
+                      <NumericInput label={t('paramInfo.p_base_freq.label')} value={currentParams.p_base_freq} onChange={(v) => updateParam('p_base_freq', v)} min={0} max={2}/>
+                      <NumericInput label={t('paramInfo.p_freq_ramp.label')} value={currentParams.p_freq_ramp} onChange={(v) => updateParam('p_freq_ramp', v)} min={-1} max={1}/>
+                      <NumericInput label={t('paramInfo.p_freq_limit.label')} value={currentParams.p_freq_limit} onChange={(v) => updateParam('p_freq_limit', v)} min={0} max={1}/>
+                      <NumericInput label={t('paramInfo.p_repeat_speed.label')} value={currentParams.p_repeat_speed} onChange={(v) => updateParam('p_repeat_speed', v)} min={0} max={1}/>
                     </>
                   ) : (
                     <>
-                      <ParamSlider
-                        label="Base Frequency"
-                        value={currentParams.p_base_freq}
-                        onChange={(v) => updateParam('p_base_freq', v)}
-                        min={0} max={2}
-                        info={parameterInfo.p_base_freq}
-                      />
-                      <ParamSlider
-                        label="Frequency Ramp"
-                        value={currentParams.p_freq_ramp}
-                        onChange={(v) => updateParam('p_freq_ramp', v)}
-                        min={-1} max={1}
-                        info={parameterInfo.p_freq_ramp}
-                      />
-                      <ParamSlider
-                        label="Frequency Floor"
-                        value={currentParams.p_freq_limit}
-                        onChange={(v) => updateParam('p_freq_limit', v)}
-                        min={0} max={1}
-                        info={parameterInfo.p_freq_limit}
-                      />
-                      <ParamSlider
-                        label="Delta Slide"
-                        value={currentParams.p_freq_dramp}
-                        onChange={(v) => updateParam('p_freq_dramp', v)}
-                        min={-1} max={1}
-                        info={parameterInfo.p_freq_dramp}
-                      />
-                      <ParamSlider
-                        label="Retrigger Rate"
-                        value={currentParams.p_repeat_speed}
-                        onChange={(v) => updateParam('p_repeat_speed', v)}
-                        min={0} max={1}
-                        info={parameterInfo.p_repeat_speed}
-                      />
+                      <ParamSlider label={t('paramInfo.p_base_freq.label')} value={currentParams.p_base_freq} onChange={(v) => updateParam('p_base_freq', v)} min={0} max={2} info={parameterInfo.p_base_freq}/>
+                      <ParamSlider label={t('paramInfo.p_freq_ramp.label')} value={currentParams.p_freq_ramp} onChange={(v) => updateParam('p_freq_ramp', v)} min={-1} max={1} info={parameterInfo.p_freq_ramp}/>
+                      <ParamSlider label={t('paramInfo.p_freq_limit.label')} value={currentParams.p_freq_limit} onChange={(v) => updateParam('p_freq_limit', v)} min={0} max={1} info={parameterInfo.p_freq_limit}/>
+                      <ParamSlider label={t('paramInfo.p_repeat_speed.label')} value={currentParams.p_repeat_speed} onChange={(v) => updateParam('p_repeat_speed', v)} min={0} max={1} info={parameterInfo.p_repeat_speed}/>
                     </>
                   )}
                 </>
@@ -3351,75 +2811,21 @@ export default function CompleteCrispFXR() {
                 <>
                   {showNumericInputs ? (
                     <>
-                      <NumericInput
-                        label="Attack Time"
-                        value={currentParams.p_env_attack}
-                        onChange={(v) => updateParam('p_env_attack', v)}
-                      />
-                      <NumericInput
-                        label="Sustain Time"
-                        value={currentParams.p_env_sustain}
-                        onChange={(v) => updateParam('p_env_sustain', v)}
-                      />
-                      <NumericInput
-                        label="Decay Time"
-                        value={currentParams.p_env_decay}
-                        onChange={(v) => updateParam('p_env_decay', v)}
-                      />
-                      <NumericInput
-                        label="Sustain Punch"
-                        value={currentParams.p_env_punch}
-                        onChange={(v) => updateParam('p_env_punch', v)}
-                      />
-                      <NumericInput
-                        label="Vibrato Speed"
-                        value={currentParams.p_vib_speed}
-                        onChange={(v) => updateParam('p_vib_speed', v)}
-                      />
-                      <NumericInput
-                        label="Vibrato Depth"
-                        value={currentParams.p_vib_strength}
-                        onChange={(v) => updateParam('p_vib_strength', v)}
-                      />
+                      <NumericInput label={t('paramInfo.p_env_attack.label')} value={currentParams.p_env_attack} onChange={(v) => updateParam('p_env_attack', v)} />
+                      <NumericInput label={t('paramInfo.p_env_sustain.label')} value={currentParams.p_env_sustain} onChange={(v) => updateParam('p_env_sustain', v)} />
+                      <NumericInput label={t('paramInfo.p_env_decay.label')} value={currentParams.p_env_decay} onChange={(v) => updateParam('p_env_decay', v)} />
+                      <NumericInput label={t('paramInfo.p_env_punch.label')} value={currentParams.p_env_punch} onChange={(v) => updateParam('p_env_punch', v)} />
+                      <NumericInput label={t('paramInfo.p_vib_speed.label')} value={currentParams.p_vib_speed} onChange={(v) => updateParam('p_vib_speed', v)} />
+                      <NumericInput label={t('paramInfo.p_vib_strength.label')} value={currentParams.p_vib_strength} onChange={(v) => updateParam('p_vib_strength', v)} />
                     </>
                   ) : (
                     <>
-                      <ParamSlider
-                        label="Attack Time"
-                        value={currentParams.p_env_attack}
-                        onChange={(v) => updateParam('p_env_attack', v)}
-                        info={parameterInfo.p_env_attack}
-                      />
-                      <ParamSlider
-                        label="Sustain Time"
-                        value={currentParams.p_env_sustain}
-                        onChange={(v) => updateParam('p_env_sustain', v)}
-                        info={parameterInfo.p_env_sustain}
-                      />
-                      <ParamSlider
-                        label="Decay Time"
-                        value={currentParams.p_env_decay}
-                        onChange={(v) => updateParam('p_env_decay', v)}
-                        info={parameterInfo.p_env_decay}
-                      />
-                      <ParamSlider
-                        label="Sustain Punch"
-                        value={currentParams.p_env_punch}
-                        onChange={(v) => updateParam('p_env_punch', v)}
-                        info={parameterInfo.p_env_punch}
-                      />
-                      <ParamSlider
-                        label="Vibrato Speed"
-                        value={currentParams.p_vib_speed}
-                        onChange={(v) => updateParam('p_vib_speed', v)}
-                        info={parameterInfo.p_vib_speed}
-                      />
-                      <ParamSlider
-                        label="Vibrato Depth"
-                        value={currentParams.p_vib_strength}
-                        onChange={(v) => updateParam('p_vib_strength', v)}
-                        info={parameterInfo.p_vib_strength}
-                      />
+                      <ParamSlider label={t('paramInfo.p_env_attack.label')} value={currentParams.p_env_attack} onChange={(v) => updateParam('p_env_attack', v)} info={parameterInfo.p_env_attack} />
+                      <ParamSlider label={t('paramInfo.p_env_sustain.label')} value={currentParams.p_env_sustain} onChange={(v) => updateParam('p_env_sustain', v)} info={parameterInfo.p_env_sustain} />
+                      <ParamSlider label={t('paramInfo.p_env_decay.label')} value={currentParams.p_env_decay} onChange={(v) => updateParam('p_env_decay', v)} info={parameterInfo.p_env_decay} />
+                      <ParamSlider label={t('paramInfo.p_env_punch.label')} value={currentParams.p_env_punch} onChange={(v) => updateParam('p_env_punch', v)} info={parameterInfo.p_env_punch} />
+                      <ParamSlider label={t('paramInfo.p_vib_speed.label')} value={currentParams.p_vib_speed} onChange={(v) => updateParam('p_vib_speed', v)} info={parameterInfo.p_vib_speed} />
+                      <ParamSlider label={t('paramInfo.p_vib_strength.label')} value={currentParams.p_vib_strength} onChange={(v) => updateParam('p_vib_strength', v)} info={parameterInfo.p_vib_strength} />
                     </>
                   )}
                 </>
@@ -3429,121 +2835,21 @@ export default function CompleteCrispFXR() {
                 <>
                   {showNumericInputs ? (
                     <>
-                      <NumericInput
-                        label="Distortion"
-                        value={currentParams.distortion}
-                        onChange={(v) => updateParam('distortion', v)}
-                      />
-                      <NumericInput
-                        label="Bit Crush"
-                        value={currentParams.bit_crush}
-                        onChange={(v) => updateParam('bit_crush', v)}
-                      />
-                      <NumericInput
-                        label="Low-pass Filter"
-                        value={currentParams.p_lpf_freq}
-                        onChange={(v) => updateParam('p_lpf_freq', v)}
-                      />
-                      <NumericInput
-                        label="High-pass Filter"
-                        value={currentParams.p_hpf_freq}
-                        onChange={(v) => updateParam('p_hpf_freq', v)}
-                      />
-                      <NumericInput
-                        label="Chorus Rate"
-                        value={currentParams.chorus_rate}
-                        onChange={(v) => updateParam('chorus_rate', v)}
-                      />
-                      <NumericInput
-                        label="Delay Time"
-                        value={currentParams.delay_time}
-                        onChange={(v) => updateParam('delay_time', v)}
-                      />
-                      <NumericInput
-                        label="Flanger Rate"
-                        value={currentParams.flanger_rate}
-                        onChange={(v) => updateParam('flanger_rate', v)}
-                      />
-                      <NumericInput
-                        label="Flanger Depth"
-                        value={currentParams.flanger_depth}
-                        onChange={(v) => updateParam('flanger_depth', v)}
-                      />
-                      <NumericInput
-                        label="Flanger Delay"
-                        value={currentParams.flanger_delay}
-                        onChange={(v) => updateParam('flanger_delay', v)}
-                      />
-                      <NumericInput
-                        label="LPF Resonance"
-                        value={currentParams.p_lpf_resonance}
-                        onChange={(v) => updateParam('p_lpf_resonance', v)}
-                        min={0} max={1}
-                      />
+                      <NumericInput label={t('paramInfo.distortion.label')} value={currentParams.distortion} onChange={(v) => updateParam('distortion', v)} />
+                      <NumericInput label={t('paramInfo.bit_crush.label')} value={currentParams.bit_crush} onChange={(v) => updateParam('bit_crush', v)} />
+                      <NumericInput label={t('paramInfo.p_lpf_freq.label')} value={currentParams.p_lpf_freq} onChange={(v) => updateParam('p_lpf_freq', v)} />
+                      <NumericInput label={t('paramInfo.p_hpf_freq.label')} value={currentParams.p_hpf_freq} onChange={(v) => updateParam('p_hpf_freq', v)} />
+                      <NumericInput label={t('paramInfo.chorus_rate.label')} value={currentParams.chorus_rate} onChange={(v) => updateParam('chorus_rate', v)} />
+                      <NumericInput label={t('paramInfo.delay_time.label')} value={currentParams.delay_time} onChange={(v) => updateParam('delay_time', v)} />
                     </>
                   ) : (
                     <>
-                      <ParamSlider
-                        label="Distortion"
-                        value={currentParams.distortion}
-                        onChange={(v) => updateParam('distortion', v)}
-                        info={parameterInfo.distortion}
-                      />
-                      <ParamSlider
-                        label="Bit Crush"
-                        value={currentParams.bit_crush}
-                        onChange={(v) => updateParam('bit_crush', v)}
-                        info={parameterInfo.bit_crush}
-                      />
-                      <ParamSlider
-                        label="Low-pass Filter"
-                        value={currentParams.p_lpf_freq}
-                        onChange={(v) => updateParam('p_lpf_freq', v)}
-                        info={parameterInfo.p_lpf_freq}
-                      />
-                      <ParamSlider
-                        label="High-pass Filter"
-                        value={currentParams.p_hpf_freq}
-                        onChange={(v) => updateParam('p_hpf_freq', v)}
-                        info={parameterInfo.p_hpf_freq}
-                      />
-                      <ParamSlider
-                        label="Chorus Rate"
-                        value={currentParams.chorus_rate}
-                        onChange={(v) => updateParam('chorus_rate', v)}
-                        info={parameterInfo.chorus_rate}
-                      />
-                      <ParamSlider
-                        label="Delay Time"
-                        value={currentParams.delay_time}
-                        onChange={(v) => updateParam('delay_time', v)}
-                        info={parameterInfo.delay_time}
-                      />
-                      <ParamSlider
-                        label="Flanger Rate"
-                        value={currentParams.flanger_rate}
-                        onChange={(v) => updateParam('flanger_rate', v)}
-                        info={parameterInfo.flanger_rate}
-                      />
-                      <ParamSlider
-                        label="Flanger Depth"
-                        value={currentParams.flanger_depth}
-                        onChange={(v) => updateParam('flanger_depth', v)}
-                        info={parameterInfo.flanger_depth}
-                      />
-                      <ParamSlider
-                        label="Flanger Delay"
-                        value={currentParams.flanger_delay}
-                        onChange={(v) => updateParam('flanger_delay', v)}
-                        info={parameterInfo.flanger_delay}
-                      />
-                      <ParamSlider
-                        label="LPF Resonance"
-                        value={currentParams.p_lpf_resonance}
-                        onChange={(v) => updateParam('p_lpf_resonance', v)}
-                        min={0} max={1}
-                        info={parameterInfo.p_lpf_resonance}
-                      />
+                      <ParamSlider label={t('paramInfo.distortion.label')} value={currentParams.distortion} onChange={(v) => updateParam('distortion', v)} info={parameterInfo.distortion} />
+                      <ParamSlider label={t('paramInfo.bit_crush.label')} value={currentParams.bit_crush} onChange={(v) => updateParam('bit_crush', v)} info={parameterInfo.bit_crush} />
+                      <ParamSlider label={t('paramInfo.p_lpf_freq.label')} value={currentParams.p_lpf_freq} onChange={(v) => updateParam('p_lpf_freq', v)} info={parameterInfo.p_lpf_freq} />
+                      <ParamSlider label={t('paramInfo.p_hpf_freq.label')} value={currentParams.p_hpf_freq} onChange={(v) => updateParam('p_hpf_freq', v)} info={parameterInfo.p_hpf_freq} />
+                      <ParamSlider label={t('paramInfo.chorus_rate.label')} value={currentParams.chorus_rate} onChange={(v) => updateParam('chorus_rate', v)} info={parameterInfo.chorus_rate} />
+                      <ParamSlider label={t('paramInfo.delay_time.label')} value={currentParams.delay_time} onChange={(v) => updateParam('delay_time', v)} info={parameterInfo.delay_time} />
                     </>
                   )}
                 </>
@@ -3553,75 +2859,21 @@ export default function CompleteCrispFXR() {
                 <>
                   {showNumericInputs ? (
                     <>
-                      <NumericInput
-                        label="FM Frequency"
-                        value={currentParams.fm_freq}
-                        onChange={(v) => updateParam('fm_freq', v)}
-                      />
-                      <NumericInput
-                        label="FM Depth"
-                        value={currentParams.fm_depth}
-                        onChange={(v) => updateParam('fm_depth', v)}
-                      />
-                      <NumericInput
-                        label="Ring Mod Freq"
-                        value={currentParams.ring_mod_freq}
-                        onChange={(v) => updateParam('ring_mod_freq', v)}
-                      />
-                      <NumericInput
-                        label="Ring Mod Depth"
-                        value={currentParams.ring_mod_depth}
-                        onChange={(v) => updateParam('ring_mod_depth', v)}
-                      />
-                      <NumericInput
-                        label="Delay Feedback"
-                        value={currentParams.delay_feedback}
-                        onChange={(v) => updateParam('delay_feedback', v)}
-                      />
-                      <NumericInput
-                        label="Master Volume"
-                        value={currentParams.sound_vol}
-                        onChange={(v) => updateParam('sound_vol', v)}
-                      />
+                      <NumericInput label={t('paramInfo.fm_freq.label')} value={currentParams.fm_freq} onChange={(v) => updateParam('fm_freq', v)} />
+                      <NumericInput label={t('paramInfo.fm_depth.label')} value={currentParams.fm_depth} onChange={(v) => updateParam('fm_depth', v)} />
+                      <NumericInput label={t('paramInfo.ring_mod_freq.label')} value={currentParams.ring_mod_freq} onChange={(v) => updateParam('ring_mod_freq', v)} />
+                      <NumericInput label={t('paramInfo.ring_mod_depth.label')} value={currentParams.ring_mod_depth} onChange={(v) => updateParam('ring_mod_depth', v)} />
+                      <NumericInput label={t('paramInfo.delay_feedback.label')} value={currentParams.delay_feedback} onChange={(v) => updateParam('delay_feedback', v)} />
+                      <NumericInput label={t('paramInfo.sound_vol.label')} value={currentParams.sound_vol} onChange={(v) => updateParam('sound_vol', v)} />
                     </>
                   ) : (
                     <>
-                      <ParamSlider
-                        label="FM Frequency"
-                        value={currentParams.fm_freq}
-                        onChange={(v) => updateParam('fm_freq', v)}
-                        info={parameterInfo.fm_freq}
-                      />
-                      <ParamSlider
-                        label="FM Depth"
-                        value={currentParams.fm_depth}
-                        onChange={(v) => updateParam('fm_depth', v)}
-                        info={parameterInfo.fm_depth}
-                      />
-                      <ParamSlider
-                        label="Ring Mod Freq"
-                        value={currentParams.ring_mod_freq}
-                        onChange={(v) => updateParam('ring_mod_freq', v)}
-                        info={parameterInfo.ring_mod_freq}
-                      />
-                      <ParamSlider
-                        label="Ring Mod Depth"
-                        value={currentParams.ring_mod_depth}
-                        onChange={(v) => updateParam('ring_mod_depth', v)}
-                        info={parameterInfo.ring_mod_depth}
-                      />
-                      <ParamSlider
-                        label="Delay Feedback"
-                        value={currentParams.delay_feedback}
-                        onChange={(v) => updateParam('delay_feedback', v)}
-                        info={parameterInfo.delay_feedback}
-                      />
-                      <ParamSlider
-                        label="Master Volume"
-                        value={currentParams.sound_vol}
-                        onChange={(v) => updateParam('sound_vol', v)}
-                        info={parameterInfo.sound_vol}
-                      />
+                      <ParamSlider label={t('paramInfo.fm_freq.label')} value={currentParams.fm_freq} onChange={(v) => updateParam('fm_freq', v)} info={parameterInfo.fm_freq} />
+                      <ParamSlider label={t('paramInfo.fm_depth.label')} value={currentParams.fm_depth} onChange={(v) => updateParam('fm_depth', v)} info={parameterInfo.fm_depth} />
+                      <ParamSlider label={t('paramInfo.ring_mod_freq.label')} value={currentParams.ring_mod_freq} onChange={(v) => updateParam('ring_mod_freq', v)} info={parameterInfo.ring_mod_freq} />
+                      <ParamSlider label={t('paramInfo.ring_mod_depth.label')} value={currentParams.ring_mod_depth} onChange={(v) => updateParam('ring_mod_depth', v)} info={parameterInfo.ring_mod_depth} />
+                      <ParamSlider label={t('paramInfo.delay_feedback.label')} value={currentParams.delay_feedback} onChange={(v) => updateParam('delay_feedback', v)} info={parameterInfo.delay_feedback} />
+                      <ParamSlider label={t('paramInfo.sound_vol.label')} value={currentParams.sound_vol} onChange={(v) => updateParam('sound_vol', v)} info={parameterInfo.sound_vol} />
                     </>
                   )}
                 </>
@@ -3629,6 +2881,10 @@ export default function CompleteCrispFXR() {
             </div>
           </div>
           {/* -------------------- Desktop UI ENDS HERE -------------------- */}
+        
+        {/* here we could have react portals --- */}
+
+        
 
       </div>
     </div>
