@@ -384,3 +384,51 @@ select:focus {
   outline: 3px solid #3b82f6 !important;
   outline-offset: 2px !important;
 }
+
+/* Fix for oversized info buttons */
+.info-button {
+  /* Reset the global button styles */
+  min-height: auto !important;
+  min-width: auto !important;
+  padding: 0 !important;
+  
+  /* Define a new, small size */
+  width: 1.125rem !important; /* 18px */
+  height: 1.125rem !important; /* 18px */
+  margin-left: 0.25rem !important;
+
+  /* Basic styling */
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 9999px !important;
+  background-color: #3b82f6 !important; /* Tailwind's bg-blue-500 */
+  color: white !important;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.info-button:hover {
+  background-color: #60a5fa !important; /* Tailwind's bg-blue-400 */
+}
+
+/* Size the SVG icon inside the button */
+.info-button svg {
+  width: 0.8rem !important;
+  height: 0.8rem !important;
+}
+
+/* Style for the 'X' close button in the modal */
+.info-button-close {
+  min-height: auto !important;
+  min-width: auto !important;
+  padding: 0 !important;
+  font-size: 1.75rem !important;
+  font-weight: 400 !important;
+  line-height: 1 !important;
+  color: #9ca3af !important; /* gray-400 */
+  background-color: transparent !important;
+}
+
+.info-button-close:hover {
+  color: white !important;
+}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import ReactDOM from 'react-dom';
 import { Play, Download, Zap, Volume2, Settings, Activity, Lock, Unlock, Copy, RotateCcw, Shuffle, PauseCircle, Headphones, Repeat } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
@@ -986,49 +987,136 @@ const WaveformDisplay = ({ audioBuffer, isPlaying, title = "Waveform" }) => {
 
 const ParameterInfo = ({ title, description, technical }) => {
   const [showTooltip, setShowTooltip] = useState(false);
+  const [position, setPosition] = useState('left');
+  const [isMobile, setIsMobile] = useState(false);
+  const ref = useRef(null);
 
-  const handleClick = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setShowTooltip(!showTooltip);
+  // An SVG icon to use for the button
+  const infoIcon = (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+    </svg>
+  );
+
+  // Detect mobile on mount and resize
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768); 
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Handlers remain the same...
+  const handleMouseEnter = () => {
+    if (!isMobile && ref.current) {
+      const rect = ref.current.getBoundingClientRect();
+      setPosition(rect.left > window.innerWidth / 2 ? 'right' : 'left');
+      setShowTooltip(true);
+    }
   };
 
+  const handleMouseLeave = () => {
+    if (!isMobile) setShowTooltip(false);
+  };
+
+  const handleClick = (e) => {
+    if (isMobile) {
+      e.preventDefault();
+      e.stopPropagation();
+      setShowTooltip(true);
+    }
+  };
+
+  const handleClose = () => {
+    setShowTooltip(false);
+  };
+
+  // Desktop version
+  if (!isMobile) {
+    return (
+      <div ref={ref} className="relative inline-block align-middle">
+        <button
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          className="info-button" // Use the new specific class
+          aria-label={`Info about ${title}`}
+        >
+          {infoIcon}
+        </button>
+        
+        {showTooltip && (
+          <div
+            className={`absolute z-50 w-80 p-3 bg-gray-800 border border-gray-600 rounded-lg shadow-lg bottom-full mb-2 ${
+              position === 'left' ? 'left-0' : 'right-0'
+            }`}
+          >
+            <h4 className="font-semibold text-white mb-2">{title}</h4>
+            <p className="text-sm text-gray-300 mb-2 whitespace-pre-wrap">{description}</p>
+            {technical && <p className="text-xs text-gray-400 italic">{technical}</p>}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Mobile version
   return (
-    <div className="relative inline-block">
+    <>
       <button
         onClick={handleClick}
-        className="ml-1 w-3 h-3 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center hover:bg-blue-400 lg:w-4 lg:h-4"
+        className="info-button" // Use the new specific class
+        aria-label={`Info about ${title}`}
       >
-        i
+        {infoIcon}
       </button>
-
-      {showTooltip && (
+      
+      {showTooltip && isMobile && ReactDOM.createPortal(
         <>
-          {/* Full screen backdrop */}
+          {/* Backdrop */}
           <div 
-            className="fixed inset-0 bg-black bg-opacity-50 z-[200]" 
-            onClick={() => setShowTooltip(false)}
+            className="fixed inset-0 bg-black bg-opacity-75 z-[9998]" 
+            onClick={handleClose}
+            aria-hidden="true"
           />
           
-          {/* Centered modal */}
-          <div
-            className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[300] w-80 max-w-[90vw] p-4 bg-gray-800 border border-gray-600 rounded-lg shadow-2xl"
+          {/* Centered Modal Container */}
+          <div 
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+            onClick={handleClose}
           >
-            <div className="flex justify-between items-start mb-2">
-              <h4 className="font-semibold text-white">{title}</h4>
-              <button 
-                onClick={() => setShowTooltip(false)}
-                className="text-gray-400 hover:text-white text-xl leading-none ml-2"
-              >
-                ×
-              </button>
+            <div 
+              onClick={(e) => e.stopPropagation()} 
+              className="bg-gray-800 border border-gray-600 rounded-lg shadow-2xl w-full max-w-sm max-h-[80vh] flex flex-col"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="info-modal-title"
+            >
+              {/* Modal Header */}
+              <div className="p-4 flex-shrink-0 border-b border-gray-700">
+                <div className="flex justify-between items-center">
+                  <h4 id="info-modal-title" className="font-semibold text-white text-base pr-4">{title}</h4>
+                  <button 
+                    onClick={handleClose}
+                    className="info-button-close" // Use a specific class for the close button as well
+                    aria-label="Close"
+                  >
+                    &times;
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Body (Scrollable) */}
+              <div className="p-4 overflow-y-auto">
+                <p className="text-sm text-gray-300 mb-4 whitespace-pre-wrap">{description}</p>
+                {technical && <p className="text-xs text-gray-400 italic">{technical}</p>}
+              </div>
             </div>
-            <p className="text-sm text-gray-300 mb-2">{description}</p>
-            <p className="text-xs text-gray-400 italic">{technical}</p>
           </div>
         </>
-      )}
-    </div>
+      , document.body)}
+    </>
   );
 };
 
