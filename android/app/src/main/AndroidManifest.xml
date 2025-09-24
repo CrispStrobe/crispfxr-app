@@ -1,6 +1,5 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8" ?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-
     <!-- Essential Audio Permissions -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" />
@@ -26,7 +25,6 @@
         android:requestLegacyExternalStorage="true"
         android:hardwareAccelerated="true"
         android:largeHeap="true">
-
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode"
             android:name=".MainActivity"
@@ -35,7 +33,6 @@
             android:launchMode="singleTask"
             android:exported="true"
             android:screenOrientation="unspecified">
-
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -57,7 +54,6 @@
                 <data android:mimeType="application/json" />
                 <data android:scheme="content" />
             </intent-filter>
-
         </activity>
 
         <!-- File Provider for sharing -->
@@ -66,19 +62,11 @@
             android:authorities="${applicationId}.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/file_paths" />
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
         </provider>
 
         <!-- Audio Session Configuration -->
-        <meta-data
-            android:name="android.max_aspect"
-            android:value="2.4" />
-        <meta-data
-            android:name="android.allow_multiple_resumed_activities"
-            android:value="true" />
-
+        <meta-data android:name="android.max_aspect" android:value="2.4" />
+        <meta-data android:name="android.allow_multiple_resumed_activities" android:value="true" />
     </application>
-
 </manifest>
