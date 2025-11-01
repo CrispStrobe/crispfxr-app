@@ -15,6 +15,7 @@ A modern web-based 8-bit sound synthesizer for creating (retro game) audio effec
 - **Preset System** - Save and load custom sound configurations
 - **Filter Effects** - Low-pass, high-pass, and phaser effects
 - **Envelope Control** - Attack, sustain, decay, and punch parameters
+- **Localisation** - Easily adaptable to more languages
 
 ## Live Demo
 
