@@ -1,4 +1,14 @@
 {
+    "impressum": {
+      "title": "Impressum",
+      "menuButton": "Impressum",
+      "close": "Schließen",
+      "provider": "Diensteanbieter",
+      "contact": "Kontakt",
+      "responsible": "Verantwortlich für den Inhalt",
+      "disclaimer": "Haftungsausschluss",
+      "disclaimerText": "CrispFXR wird ausschließlich zu Bildungs- und kreativen Zwecken bereitgestellt, ohne jegliche Gewährleistung. Die erzeugten Audiosignale können laut sein oder unerwartete Frequenzen enthalten. Beginnen Sie immer mit niedriger Lautstärke und verwenden Sie geeigneten Gehörschutz. Wir übernehmen keine Haftung für Schäden jeglicher Art, einschließlich aber nicht beschränkt auf: Gehörschäden, Geräteschäden, Datenverlust oder Folgeschäden, die aus der Nutzung dieser Software entstehen. Die Nutzer sind allein verantwortlich für die sichere Verwendung der Anwendung auf eigenes Risiko."
+    },
     "appTitle": "CrispFXR",
     "appSubtitle": "Fortschrittlicher 8-Bit Sound-Synthesizer",
     "controls": {

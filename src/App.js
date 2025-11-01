@@ -1598,6 +1598,70 @@ const NumericInput = ({ label, value, onChange, min = -1, max = 1, step = 0.01, 
   );
 };
 
+const ImpressumModal = ({ isOpen, onClose }) => {
+  const { t } = useTranslation();
+  
+  if (!isOpen) return null;
+
+  return ReactDOM.createPortal(
+    <>
+      <div 
+        className="fixed inset-0 bg-black bg-opacity-75 z-[9998]" 
+        onClick={onClose}
+      />
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+        <div 
+          onClick={(e) => e.stopPropagation()}
+          className="bg-gray-800 border border-gray-600 rounded-lg shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col"
+        >
+          <div className="p-4 flex-shrink-0 border-b border-gray-700">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-bold text-white">{t('impressum.title')}</h2>
+              <button 
+                onClick={onClose}
+                className="text-gray-400 hover:text-white text-2xl w-8 h-8 flex items-center justify-center"
+              >
+                &times;
+              </button>
+            </div>
+          </div>
+
+          <div className="p-6 overflow-y-auto text-gray-200">
+            <h3 className="text-lg font-semibold text-white mb-2">{t('impressum.provider')}</h3>
+            <p className="mb-4">
+              {/* YOUR INFORMATION HERE */}
+              Christian Ströbele<br />
+              Nikolausstr. 5<br />
+              70190 Stuttgart<br />
+              Deutschland/Germany
+            </p>
+
+            <h3 className="text-lg font-semibold text-white mb-2">{t('impressum.contact')}</h3>
+            <p className="mb-4">
+              Email: postmaster@crispstro.be<br />
+              Phone: 0049 176 6421 8601
+            </p>
+
+            <h3 className="text-lg font-semibold text-white mb-2">{t('impressum.responsible')}</h3>
+            <p className="mb-4">
+              Christian Ströbele<br />
+              Nikolausstr. 5<br />
+              70190 Stuttgart<br />
+              Deutschland/Germany
+            </p>
+
+            <h3 className="text-lg font-semibold text-white mb-2">{t('impressum.disclaimer')}</h3>
+            <p className="text-sm">
+              {t('impressum.disclaimerText')}
+            </p>
+          </div>
+        </div>
+      </div>
+    </>,
+    document.body
+  );
+};
+
 // Main component with iOS fixes
 export default function CompleteCrispFXR() {
   const { t, i18n } = useTranslation();
@@ -1622,6 +1686,7 @@ export default function CompleteCrispFXR() {
   const [bitDepth, setBitDepth] = useState(16);
   const [isClipping, setIsClipping] = useState(false);
   const [currentShareLink, setCurrentShareLink] = useState('');
+  const [showImpressum, setShowImpressum] = useState(false);
 
   const currentParams = activeSlot === 'A' ? params : paramsB;
   const currentBuffer = activeSlot === 'A' ? audioBuffer : audioBufferB;
@@ -1703,8 +1768,8 @@ export default function CompleteCrispFXR() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const currentLang = availableLanguages.find(lang => i18n.language.startsWith(lang.code)) || availableLanguages[0];
-  
+  const currentLang = availableLanguages.find(lang => i18n.language?.startsWith(lang.code)) || availableLanguages[0];
+
   // Error boundary and logging
   useEffect(() => {
     const handleError = (event) => {
@@ -2438,7 +2503,15 @@ export default function CompleteCrispFXR() {
                   </div>
                 </div>
               )}
+
             </div>
+
+            <button
+                onClick={() => setShowImpressum(true)}
+                className="text-xs text-gray-400 hover:text-white transition-colors"
+              >
+                {t('impressum.menuButton')}
+              </button>
 
           </div>
 
@@ -2878,12 +2951,31 @@ export default function CompleteCrispFXR() {
                   )}
                 </>
               )}
+
+              
+
             </div>
           </div>
           {/* -------------------- Desktop UI ENDS HERE -------------------- */}
+
+          {/* Footer with Impressum link */}
+          <div className="text-center mt-8 py-4 border-t border-gray-800">
+            <button
+              onClick={() => setShowImpressum(true)}
+              className="text-sm text-gray-400 hover:text-white transition-colors"
+            >
+              {t('impressum.menuButton')}
+            </button>
+          </div>
+
+          {/* Render the modal */}
+          <ImpressumModal 
+            isOpen={showImpressum} 
+            onClose={() => setShowImpressum(false)} 
+          />
         
         {/* here we could have react portals --- */}
-
+        
         
 
       </div>
