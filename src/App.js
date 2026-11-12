@@ -1673,7 +1673,7 @@ export default function CompleteCrispFXR() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [activeTab, setActiveTab] = useState('basic');
   const [exportFormat, setExportFormat] = useState('wav');
-  const [lockedParams, setLockedParams] = useState(new Set());
+  const [lockedParams] = useState(new Set());
   const [activeSlot, setActiveSlot] = useState('A');
   const [masterVolume, setMasterVolume] = useState(0.7);
   const [morphAmount, setMorphAmount] = useState(0);
@@ -1685,7 +1685,6 @@ export default function CompleteCrispFXR() {
   const [sampleRate, setSampleRate] = useState(44100);
   const [bitDepth, setBitDepth] = useState(16);
   const [isClipping, setIsClipping] = useState(false);
-  const [currentShareLink, setCurrentShareLink] = useState('');
   const [showImpressum, setShowImpressum] = useState(false);
 
   const currentParams = activeSlot === 'A' ? params : paramsB;
@@ -1960,7 +1959,6 @@ export default function CompleteCrispFXR() {
     const encoded = encodeParams(currentParams);
     const baseUrl = window.location.origin + window.location.pathname;
     const shareUrl = `${baseUrl}?sound=${encoded}`;
-    setCurrentShareLink(shareUrl);
 
     if (Capacitor.isNativePlatform()) {
       // Use Capacitor Share plugin on mobile
@@ -1985,44 +1983,6 @@ export default function CompleteCrispFXR() {
       }
     }
   }, [params, paramsB, activeSlot]);
-
-  const copyParamsAsBase64 = useCallback(async () => {
-    const currentParams = activeSlot === 'A' ? params : paramsB;
-    const encoded = encodeParams(currentParams);
-
-    if (Capacitor.isNativePlatform()) {
-      // On mobile, use Share plugin
-      try {
-        await Share.share({
-          title: 'CrispFXR Parameters',
-          text: encoded,
-          dialogTitle: 'Share parameters'
-        });
-      } catch (error) {
-        console.error('Error sharing parameters:', error);
-      }
-    } else {
-      // On web, use clipboard
-      try {
-        await navigator.clipboard.writeText(encoded);
-        console.log('Parameters copied as base64');
-      } catch (err) {
-        console.error('Failed to copy to clipboard:', err);
-      }
-    }
-  }, [params, paramsB, activeSlot]);
-
-  const toggleParamLock = useCallback((param) => {
-    setLockedParams(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(param)) {
-        newSet.delete(param);
-      } else {
-        newSet.add(param);
-      }
-      return newSet;
-    });
-  }, []);
 
   const generateSound = useCallback(async () => {
     try {
@@ -2207,25 +2167,6 @@ export default function CompleteCrispFXR() {
       }, 2000);
     }
   }, [isLooping, playSound]);
-
-  const getParameterSuggestion = (param, waveType) => {
-    const suggestions = {
-      [SQUARE]: {
-        p_duty: "Try 0.1-0.9 for different timbres",
-        p_duty_ramp: "Sweep for filter-like effects"
-      },
-      [SINE]: {
-        fm_freq: "Add harmonics with FM",
-        p_vib_speed: "Natural vibrato at 4-6Hz"
-      },
-      [NOISE]: {
-        p_lpf_freq: "Essential for shaping noise",
-        p_hpf_freq: "Remove unwanted low-end"
-      }
-    };
-
-    return suggestions[waveType]?.[param] || null;
-  };
 
   const exportSound = useCallback(async () => {
     const buffer = activeSlot === 'A' ? audioBuffer : audioBufferB;
@@ -2442,16 +2383,6 @@ export default function CompleteCrispFXR() {
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [undo, redo, playSound, loadPreset, toggleLoop, mutateParams, generateShareLink, showNumericInputs]);
-
-  // Info button handler
-  const [showInfo, setShowInfo] = useState(false);
-  
-  const handleInfoClick = () => {
-    setShowInfo(!showInfo);
-  };
-
-  const waveTypes = ['Square', 'Sawtooth', 'Sine', 'Noise'];
-  const noiseTypes = ['White', 'Pink', 'Brown'];
 
   return (
     
